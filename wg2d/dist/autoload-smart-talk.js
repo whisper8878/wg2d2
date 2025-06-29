@@ -11,8 +11,16 @@ const CDN_BASE = 'https://cdn.jsdelivr.net/gh/whisper8878/model2@master/model/';
 
 // 全局变量
 let availableExpressions = [];
-let isExpressionSystemReady = false;
+let isSystemReady = false;
 let isTalking = false;
+// let externalLogger = null; // 已移除外部日志记录器以避免递归错误
+
+// 注册外部日志记录器 (已移除)
+// window.setLive2DLogger = (loggerFunc) => {
+//   if (typeof loggerFunc === 'function') {
+//     externalLogger = loggerFunc;
+//   }
+// };
 
 // 封装异步加载资源的方法
 function loadExternalResource(url, type) {
@@ -39,13 +47,26 @@ function loadExternalResource(url, type) {
 // 日志函数
 function logMessage(message, level = 'info') {
   const prefix = '[Live2D SmartTalk]';
+  const fullMessage = `${prefix} ${message}`;
+
+  // 1. 总是打印到控制台
   if (level === 'error') {
-    console.error(`${prefix} ${message}`);
+    console.error(fullMessage);
   } else if (level === 'warn') {
-    console.warn(`${prefix} ${message}`);
+    console.warn(fullMessage);
   } else {
-    console.log(`${prefix} ${message}`);
+    console.log(fullMessage);
   }
+
+  // 2. 外部记录器功能已移除，以防止无限递归错误。
+  // if (externalLogger) {
+  //   try {
+  //     externalLogger(message, level);
+  //   } catch (e) {
+  //     console.error('[Live2D SmartTalk] 调用外部日志记录器时出错:', e);
+  //     externalLogger = null; // 防止再次出错
+  //   }
+  // }
 }
 
 (async () => {
@@ -87,13 +108,15 @@ function logMessage(message, level = 'info') {
       try {
         logMessage(`🌐 开始加载CDN模型: ${modelName}`);
 
-        // 重置canvas
+        // 高分辨率放大2倍
         const waifuEl = document.getElementById('waifu');
         if (waifuEl) {
           const canvas = waifuEl.querySelector('#live2d');
           if (canvas) {
-            canvas.width = 400;
-            canvas.height = 500;
+            canvas.width = 800;
+            canvas.height = 1000;
+            canvas.style.width = '800px';
+            canvas.style.height = '1000px';
           }
         }
 
@@ -120,33 +143,34 @@ function logMessage(message, level = 'info') {
 
         logMessage(`✅ ${modelName} 模型配置完成，等待加载...`);
 
-        // 等待模型加载完成后自动初始化表情系统
-        setTimeout(async () => {
-          logMessage('🎭 自动初始化表情系统...');
-
-          // 重试机制，最多尝试10次
-          let retries = 0;
-          const maxRetries = 10;
-
-          const tryInitExpressions = async () => {
-            const model = window.getCurrentCDNModel();
-            if (model) {
-              logMessage('✅ 模型已就绪，开始初始化表情系统');
-              await window.initExpressions();
-            } else if (retries < maxRetries) {
-              retries++;
-              logMessage(
-                `⏳ 模型还未就绪，重试 ${retries}/${maxRetries}...`,
-                'warn',
-              );
-              setTimeout(tryInitExpressions, 1000);
-            } else {
-              logMessage('❌ 模型加载超时，表情系统初始化失败', 'error');
-            }
-          };
-
-          tryInitExpressions();
-        }, 3000);
+        // 等待模型加载完成后自动初始化智能说话系统
+        let checkCount = 0;
+        const maxChecks = 30;
+        const checkModelInterval = setInterval(() => {
+          checkCount++;
+          const model = window.getCurrentCDNModel();
+          if (model) {
+            clearInterval(checkModelInterval);
+            logMessage('✅ 模型加载完成！');
+            setTimeout(() => {
+              autoInitializeExpressionSystem().then((success) => {
+                if (success) {
+                  logMessage('🎉 智能说话系统初始化完成！', 'success');
+                  logMessage(
+                    '💡 尝试在控制台输入: smartTalk() 或 randomTalk()',
+                    'success',
+                  );
+                }
+              });
+            }, 1000);
+            isSystemReady = true;
+          } else if (checkCount >= maxChecks) {
+            clearInterval(checkModelInterval);
+            logMessage('❌ 模型加载超时，请刷新页面重试', 'error');
+          } else {
+            logMessage(`⏳ 等待模型加载... (${checkCount}/${maxChecks})`);
+          }
+        }, 1000);
 
         return true;
       } catch (error) {
@@ -193,93 +217,69 @@ function logMessage(message, level = 'info') {
       }
     };
 
-    // 表情预加载系统
-    window.initExpressions = async function () {
-      try {
-        logMessage('🎭 开始初始化表情预加载系统...');
-
-        const model = window.getCurrentCDNModel();
-        if (!model) {
-          logMessage('❌ 模型未就绪，请先加载模型', 'warn');
-          return false;
-        }
-
-        const modelSetting = model._modelSetting;
-        const expressionCount = modelSetting.getExpressionCount();
-
-        if (expressionCount === 0) {
-          logMessage('⚠️ 当前模型没有配置表情文件', 'warn');
-          return false;
-        }
-
-        logMessage(`📊 发现 ${expressionCount} 个表情，开始预加载...`);
-
-        model._expressions.clear();
-        availableExpressions = [];
-        let loadedCount = 0;
-
-        for (let i = 0; i < expressionCount; i++) {
-          try {
-            const expressionName = modelSetting.getExpressionName(i);
-            const expressionFileName = modelSetting.getExpressionFileName(i);
-            const url = model._modelHomeDir + expressionFileName;
-            const expressionKey = expressionName || `expression_${i}`;
-
-            logMessage(
-              `📥 预加载表情 ${i + 1}/${expressionCount}: ${expressionName}`,
-            );
-
-            const res = await fetch(url);
-            if (!res.ok) {
-              logMessage(`❌ 网络错误: ${expressionFileName}`, 'error');
-              continue;
-            }
-
-            const buffer = await res.arrayBuffer();
-            const expression = model.loadExpression(
-              buffer,
-              buffer.byteLength,
-              expressionKey,
-            );
-
-            if (expression) {
-              model._expressions.setValue(expressionKey, expression);
-              availableExpressions.push({
-                name: expressionName,
-                key: expressionKey,
-                fileName: expressionFileName,
-                index: i,
-              });
-              loadedCount++;
-              logMessage(`✅ 成功预加载: ${expressionName}`);
-            } else {
-              logMessage(`❌ 创建失败: ${expressionFileName}`, 'error');
-            }
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          } catch (error) {
-            logMessage(`❌ 表情加载错误: ${error.message}`, 'error');
-          }
-        }
-
-        isExpressionSystemReady = true;
-        logMessage(
-          `🎭 表情系统初始化完成！成功预加载 ${loadedCount}/${expressionCount} 个表情`,
-        );
-        createExpressionFunctions(model);
-        return true;
-      } catch (error) {
-        logMessage(`❌ 表情系统初始化失败: ${error.message}`, 'error');
+    // 自动初始化表情和说话系统
+    async function autoInitializeExpressionSystem() {
+      logMessage('🎭 开始自动初始化智能说话系统...');
+      const model = window.getCurrentCDNModel();
+      if (!model) {
+        logMessage('❌ 模型未就绪，等待模型加载完成...', 'error');
         return false;
       }
-    };
-
-    // 创建表情播放函数
-    function createExpressionFunctions(model) {
-      window.playExpression = function (expressionName) {
-        if (!isExpressionSystemReady) {
-          logMessage('❌ 表情系统未就绪', 'warn');
-          return false;
+      logMessage('✅ 找到模型，开始预加载表情...');
+      const modelSetting = model._modelSetting;
+      const expressionCount = modelSetting.getExpressionCount();
+      if (expressionCount === 0) {
+        logMessage('⚠️ 模型没有配置表情文件，将使用参数控制', 'warning');
+        createParameterBasedMouthControl(model);
+        return true;
+      }
+      logMessage(`📊 发现 ${expressionCount} 个表情，开始预加载...`);
+      model._expressions.clear();
+      availableExpressions = [];
+      let loadedCount = 0;
+      for (let i = 0; i < expressionCount; i++) {
+        try {
+          const expressionName = modelSetting.getExpressionName(i);
+          const expressionFileName = modelSetting.getExpressionFileName(i);
+          const url = model._modelHomeDir + expressionFileName;
+          const expressionKey = expressionName || `expression_${i}`;
+          const res = await fetch(url);
+          if (!res.ok) {
+            logMessage(`❌ 网络错误: ${expressionFileName}`, 'error');
+            continue;
+          }
+          const buffer = await res.arrayBuffer();
+          const expression = model.loadExpression(
+            buffer,
+            buffer.byteLength,
+            expressionKey,
+          );
+          if (expression) {
+            model._expressions.setValue(expressionKey, expression);
+            availableExpressions.push({
+              name: expressionName,
+              key: expressionKey,
+            });
+            loadedCount++;
+          } else {
+            logMessage(`❌ 创建失败: ${expressionFileName}`, 'error');
+          }
+        } catch (error) {
+          logMessage(`❌ 表情加载错误: ${error.message}`, 'error');
         }
+      }
+      createExpressionFunctions(model);
+      logMessage(
+        `🎭 表情系统初始化完成！成功预加载 ${loadedCount}/${expressionCount} 个表情`,
+        'success',
+      );
+      return true;
+    }
+
+    // 创建基于表情的函数（已从 universal-test.html 增强）
+    function createExpressionFunctions(model) {
+      // 持续表情播放
+      window.playExpression = function (expressionName) {
         const expressionData = availableExpressions.find(
           (exp) => exp.name === expressionName,
         );
@@ -287,116 +287,226 @@ function logMessage(message, level = 'info') {
           logMessage(`❌ 表情不存在: ${expressionName}`, 'error');
           return false;
         }
+
         try {
           const expression = model._expressions.getValue(expressionData.key);
           if (expression) {
             model._expressionManager.stopAllMotions();
-            model._expressionManager.startMotionPriority(expression, false, 10);
-            logMessage(`🎭 播放表情: ${expressionName}`);
-            return true;
+
+            // 使用 setTimeout 确保之前的动作已停止
+            setTimeout(() => {
+              const handle = model._expressionManager.startMotionPriority(
+                expression,
+                false,
+                10, // 使用更高的优先级
+              );
+
+              if (handle !== -1) {
+                logMessage(`🎭 播放表情: ${expressionName}`, 'success'); // <--- 添加日志
+
+                // 维持表情状态的循环，对于说话等连续动作至关重要
+                const maintainExpression = () => {
+                  if (model._expressionManager.isFinished()) {
+                    // 如果表情播放完成，重新开始以维持状态
+                    const newHandle =
+                      model._expressionManager.startMotionPriority(
+                        expression,
+                        false,
+                        10,
+                      );
+                    if (newHandle !== -1) {
+                      setTimeout(maintainExpression, 100);
+                    }
+                  } else {
+                    // 如果还在播放，则继续检查
+                    setTimeout(maintainExpression, 100);
+                  }
+                };
+
+                // 启动维持循环
+                setTimeout(maintainExpression, 100);
+                return true;
+              }
+            }, 50); // 50ms 延迟
           }
         } catch (error) {
-          logMessage(`❌ 播放表情错误: ${error.message}`, 'error');
+          logMessage(`❌ 表情播放错误: ${error.message}`, 'error');
         }
         return false;
       };
 
-      window.getAvailableExpressions = function () {
-        return availableExpressions.map((exp) => exp.name);
-      };
-
-      window.playRandomExpression = function () {
-        if (availableExpressions.length === 0) {
-          logMessage('❌ 没有可用的表情', 'warn');
-          return false;
-        }
-        const randomExpression =
-          availableExpressions[
-            Math.floor(Math.random() * availableExpressions.length)
-          ];
-        return window.playExpression(randomExpression.name);
+      window.listExpressions = function () {
+        console.log(availableExpressions.map((e) => e.name));
+        logMessage(
+          `可用表情: ${availableExpressions.map((e) => e.name).join(', ')}`,
+        );
       };
     }
 
-    // --- 新增功能：智能说话 ---
-
-    /**
-     * 设置模型参数值的辅助函数
-     * @param {object} model - Live2D模型实例
-     * @param {string} paramName - 要设置的参数名称 (e.g., "ParamMouthOpenY")
-     * @param {number} value - 要设置的值
-     * @returns {boolean} - 是否设置成功
-     */
-    function setParameterValue(model, paramName, value) {
-      try {
-        if (!model?._model?._model?.parameters) {
-          return false;
-        }
-        const paramIds = model._model._model.parameters.ids;
-        const paramValues = model._model._parameterValues;
-        const index = paramIds.indexOf(paramName);
-
-        if (index !== -1) {
-          paramValues[index] = value;
-          return true;
-        }
-      } catch (error) {
-        // 忽略小错误
+    // 创建基于参数的嘴部控制
+    function createParameterBasedMouthControl(model) {
+      logMessage('🔧 创建基于参数的嘴部控制系统...');
+      if (!model?._model?._model?.parameters) {
+        logMessage('❌ 无法访问模型参数', 'error');
+        return false;
       }
+      const paramIds = model._model._model.parameters.ids;
+      const paramValues = model._model._parameterValues;
+      const mouthParam = ['ParamMouthOpenY', 'ParamJawOpen']
+        .map((id) => ({ id, index: paramIds.indexOf(id) }))
+        .find((p) => p.index >= 0);
+      if (mouthParam) {
+        logMessage(`✅ 找到嘴巴参数: ${mouthParam.id}`, 'success');
+        window.setMouthValue = (value) => {
+          paramValues[mouthParam.index] = value;
+        };
+        return true;
+      }
+      logMessage('❌ 未找到嘴巴控制参数', 'error');
       return false;
     }
 
-    /**
-     * 智能说话函数，驱动模型嘴巴进行动画
-     * @param {number} [duration=2000] - 说话动画的持续时间 (毫秒)
-     */
-    window.smartTalk = function (duration = 2000) {
+    // --- 智能说话系统 (已从 universal-test.html 增强) ---
+    window.smartTalk = function () {
+      logMessage('💬 开始智能说话...');
       if (isTalking) {
-        logMessage('🎤 正在说话中，请勿重复调用', 'warn');
+        logMessage('⚠️ 正在说话中，请勿重复调用', 'warn');
         return;
       }
 
       const model = window.getCurrentCDNModel();
       if (!model) {
-        logMessage('❌ 模型未就绪，无法说话', 'error');
+        logMessage('❌ 模型未就绪', 'error');
         return;
       }
 
-      const mouthParamId = 'ParamMouthOpenY';
-      logMessage(`🎤 开始智能说话，持续 ${duration}ms...`);
       isTalking = true;
 
-      const startTime = Date.now();
-      let animationFrameId;
+      if (availableExpressions.length > 0) {
+        // 使用表情文件的智能说话
+        const talkingSequence = [
+          { name: 'mouth_close', duration: 320 },
+          { name: 'mouth_slight', duration: 380 },
+          { name: 'mouth_half', duration: 350 },
+          { name: 'mouth_open', duration: 300 },
+          { name: 'mouth_half', duration: 330 },
+          { name: 'mouth_slight', duration: 360 },
+          { name: 'mouth_close', duration: 300 },
+          { name: 'mouth_slight', duration: 340 },
+          { name: 'mouth_open', duration: 380 },
+          { name: 'mouth_half', duration: 320 },
+          { name: 'mouth_close', duration: 350 },
+        ];
 
-      function talkLoop() {
-        const elapsedTime = Date.now() - startTime;
-        if (elapsedTime > duration) {
-          setParameterValue(model, mouthParamId, 0); // 确保嘴巴闭合
-          isTalking = false;
-          logMessage('🎤 说话结束');
-          cancelAnimationFrame(animationFrameId);
-          return;
+        let currentIndex = 0;
+
+        function playNextFrame() {
+          if (currentIndex >= talkingSequence.length) {
+            setTimeout(() => {
+              if (window.playExpression) {
+                window.playExpression('mouth_close');
+              }
+              logMessage('💬 智能说话完成', 'success');
+              isTalking = false;
+            }, 300);
+            return;
+          }
+
+          const state = talkingSequence[currentIndex];
+          if (window.playExpression) {
+            window.playExpression(state.name);
+          }
+
+          setTimeout(() => {
+            currentIndex++;
+            playNextFrame();
+          }, state.duration);
         }
 
-        // 使用正弦函数模拟嘴巴的平滑张合
-        const mouthValue = (Math.sin(elapsedTime / 100) + 1) / 2;
-        setParameterValue(model, mouthParamId, mouthValue);
+        playNextFrame();
+      } else if (window.setMouthValue) {
+        // 使用参数控制的智能说话
+        const mouthValues = [0, 0.3, 0.7, 1.0, 0.5, 0.8, 0.2, 0.9, 0.4, 0];
+        let index = 0;
 
-        animationFrameId = requestAnimationFrame(talkLoop);
+        const talkInterval = setInterval(() => {
+          window.setMouthValue(mouthValues[index % mouthValues.length]);
+          index++;
+          if (index >= mouthValues.length * 2) {
+            clearInterval(talkInterval);
+            window.setMouthValue(0);
+            logMessage('💬 智能说话完成', 'success');
+            isTalking = false;
+          }
+        }, 150);
+      } else {
+        logMessage('❌ 没有可用的嘴部控制方法', 'error');
+        isTalking = false;
       }
-
-      talkLoop();
     };
 
-    logMessage('🌟 Live2D Widget Enhanced (Smart Talk Edition) 初始化完成！');
+    window.randomTalk = function () {
+      logMessage('💬 开始随机说话...');
+      if (isTalking) return;
+      const model = window.getCurrentCDNModel();
+      if (!model) {
+        logMessage('❌ 模型未就绪', 'error');
+        return;
+      }
+      isTalking = true;
+      if (availableExpressions.some((e) => e.name.startsWith('mouth_'))) {
+        const states = [
+          'mouth_close',
+          'mouth_slight',
+          'mouth_half',
+          'mouth_open',
+        ];
+        let count = 0;
+        function playRandom() {
+          if (count++ >= 15) {
+            isTalking = false;
+            window.playExpression('mouth_close');
+            return;
+          }
+          const state = states[Math.floor(Math.random() * states.length)];
+          window.playExpression(state);
+          setTimeout(playRandom, Math.random() * 150 + 100);
+        }
+        playRandom();
+      } else if (window.setMouthValue) {
+        let count = 0;
+        const interval = setInterval(() => {
+          window.setMouthValue(Math.random());
+          if (count++ >= 15) {
+            clearInterval(interval);
+            window.setMouthValue(0);
+            isTalking = false;
+          }
+        }, 150);
+      } else {
+        isTalking = false;
+      }
+    };
+
+    window.closeMouth = function () {
+      logMessage('🤐 闭嘴...');
+      if (
+        window.playExpression &&
+        availableExpressions.some((e) => e.name === 'mouth_close')
+      ) {
+        window.playExpression('mouth_close');
+      } else if (window.setMouthValue) {
+        window.setMouthValue(0);
+      }
+    };
+
+    logMessage('🌟 智能说话版 Live2D Widget 初始化完成!');
     logMessage('💡 使用方法:');
     logMessage('   loadCDNModel("模型名") - 加载CDN模型 (如: ariu, xiaoeemo)');
-    logMessage('   initExpressions() - 初始化表情系统');
-    logMessage('   playExpression("表情名") - 播放表情');
-    logMessage('   getAvailableExpressions() - 获取可用表情列表');
-    logMessage('   smartTalk(duration) - 播放口型动画 (可选时长)');
-    logMessage('📋 可用模型: ariu, xiaoeemo (使用英文文件夹名)');
+    logMessage('   smartTalk() - 智能说话');
+    logMessage('   randomTalk() - 随机说话');
+    logMessage('   closeMouth() - 闭嘴');
+    logMessage('   listExpressions() - 列出可用表情');
   } catch (error) {
     logMessage(
       `❌ Live2D Widget Enhanced 初始化失败: ${error.message}`,
