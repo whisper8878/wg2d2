@@ -5,7 +5,8 @@
  */
 
 // CDN配置
-const live2d_path = 'https://cdn.jsdelivr.net/gh/whisper8878/wg2d@master/wg2d/dist/';
+const live2d_path =
+  'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/dist/';
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/whisper8878/model2@master/model/';
 
 // 全局变量
@@ -71,7 +72,7 @@ function logMessage(message, level = 'info') {
     // 等待initWidget函数可用
     let retries = 0;
     while (typeof window.initWidget !== 'function' && retries < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       retries++;
     }
 
@@ -100,7 +101,7 @@ function logMessage(message, level = 'info') {
         const config = {
           waifuPath: live2d_path + 'waifu-tips.json',
           cubism5Path:
-            'https://cdn.jsdelivr.net/gh/whisper8878/wg2d@master/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
+            'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
           models: [
             {
               name: modelName,
@@ -134,7 +135,10 @@ function logMessage(message, level = 'info') {
               await window.initExpressions();
             } else if (retries < maxRetries) {
               retries++;
-              logMessage(`⏳ 模型还未就绪，重试 ${retries}/${maxRetries}...`, 'warn');
+              logMessage(
+                `⏳ 模型还未就绪，重试 ${retries}/${maxRetries}...`,
+                'warn',
+              );
               setTimeout(tryInitExpressions, 1000);
             } else {
               logMessage('❌ 模型加载超时，表情系统初始化失败', 'error');
@@ -156,7 +160,11 @@ function logMessage(message, level = 'info') {
       try {
         // 方法1: 通过modelManager.cubism5model
         const manager = window.modelManager?.cubism5model;
-        if (manager && manager._subdelegates && manager._subdelegates.getSize() > 0) {
+        if (
+          manager &&
+          manager._subdelegates &&
+          manager._subdelegates.getSize() > 0
+        ) {
           const subdelegate = manager._subdelegates.at(0);
           if (subdelegate && subdelegate._live2dManager) {
             const live2dManager = subdelegate._live2dManager;
@@ -176,7 +184,7 @@ function logMessage(message, level = 'info') {
             return model;
           }
         }
-        
+
         logMessage(`⚠️ 无法获取当前模型`, 'warn');
         return null;
       } catch (error) {
@@ -217,7 +225,9 @@ function logMessage(message, level = 'info') {
             const url = model._modelHomeDir + expressionFileName;
             const expressionKey = expressionName || `expression_${i}`;
 
-            logMessage(`📥 预加载表情 ${i + 1}/${expressionCount}: ${expressionName}`);
+            logMessage(
+              `📥 预加载表情 ${i + 1}/${expressionCount}: ${expressionName}`,
+            );
 
             const res = await fetch(url);
             if (!res.ok) {
@@ -226,24 +236,35 @@ function logMessage(message, level = 'info') {
             }
 
             const buffer = await res.arrayBuffer();
-            const expression = model.loadExpression(buffer, buffer.byteLength, expressionKey);
+            const expression = model.loadExpression(
+              buffer,
+              buffer.byteLength,
+              expressionKey,
+            );
 
             if (expression) {
               model._expressions.setValue(expressionKey, expression);
-              availableExpressions.push({ name: expressionName, key: expressionKey, fileName: expressionFileName, index: i });
+              availableExpressions.push({
+                name: expressionName,
+                key: expressionKey,
+                fileName: expressionFileName,
+                index: i,
+              });
               loadedCount++;
               logMessage(`✅ 成功预加载: ${expressionName}`);
             } else {
               logMessage(`❌ 创建失败: ${expressionFileName}`, 'error');
             }
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
           } catch (error) {
             logMessage(`❌ 表情加载错误: ${error.message}`, 'error');
           }
         }
 
         isExpressionSystemReady = true;
-        logMessage(`🎭 表情系统初始化完成！成功预加载 ${loadedCount}/${expressionCount} 个表情`);
+        logMessage(
+          `🎭 表情系统初始化完成！成功预加载 ${loadedCount}/${expressionCount} 个表情`,
+        );
         createExpressionFunctions(model);
         return true;
       } catch (error) {
@@ -259,7 +280,9 @@ function logMessage(message, level = 'info') {
           logMessage('❌ 表情系统未就绪', 'warn');
           return false;
         }
-        const expressionData = availableExpressions.find(exp => exp.name === expressionName);
+        const expressionData = availableExpressions.find(
+          (exp) => exp.name === expressionName,
+        );
         if (!expressionData) {
           logMessage(`❌ 表情不存在: ${expressionName}`, 'error');
           return false;
@@ -279,7 +302,7 @@ function logMessage(message, level = 'info') {
       };
 
       window.getAvailableExpressions = function () {
-        return availableExpressions.map(exp => exp.name);
+        return availableExpressions.map((exp) => exp.name);
       };
 
       window.playRandomExpression = function () {
@@ -287,7 +310,10 @@ function logMessage(message, level = 'info') {
           logMessage('❌ 没有可用的表情', 'warn');
           return false;
         }
-        const randomExpression = availableExpressions[Math.floor(Math.random() * availableExpressions.length)];
+        const randomExpression =
+          availableExpressions[
+            Math.floor(Math.random() * availableExpressions.length)
+          ];
         return window.playExpression(randomExpression.name);
       };
     }
@@ -371,9 +397,11 @@ function logMessage(message, level = 'info') {
     logMessage('   getAvailableExpressions() - 获取可用表情列表');
     logMessage('   smartTalk(duration) - 播放口型动画 (可选时长)');
     logMessage('📋 可用模型: ariu, xiaoeemo (使用英文文件夹名)');
-
   } catch (error) {
-    logMessage(`❌ Live2D Widget Enhanced 初始化失败: ${error.message}`, 'error');
+    logMessage(
+      `❌ Live2D Widget Enhanced 初始化失败: ${error.message}`,
+      'error',
+    );
   }
 })();
 
