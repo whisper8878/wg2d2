@@ -6,8 +6,8 @@
 
 // 使用本地路径
 const live2d_path =
-  'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/dist/';
-const CDN_BASE = 'https://cdn.jsdelivr.net/gh/whisper8878/model2@master/model/';
+  'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@main/wg2d/dist/';
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/whisper8878/model2@main/model/';
 
 // 模型配置 - 默认使用 Ariu 模型
 // 要切换模型，只需修改 DEFAULT_MODEL 的值：
@@ -241,10 +241,9 @@ function loadExternalResource(url, type) {
     // 构建模型数组
     const models = [currentModelConfig]; // 初始化 Widget 配置
     const config = {
-      waifuPath: live2d_path + 'waifu-tips.json',
-      // 使用CDN的 Cubism 5 Core
+      waifuPath: live2d_path + 'waifu-tips.json',      // 使用CDN的 Cubism 5 Core
       cubism5Path:
-        'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
+        'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@main/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
       // 强制指定使用当前模型（索引0）
       modelId: 0,
       // 强制重置纹理ID
