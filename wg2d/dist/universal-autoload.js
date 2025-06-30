@@ -46,7 +46,7 @@ const Live2DScaleManager = {
   // 初始化缩放系统
   init(customConfig = {}) {
     this.config = { ...this.config, ...customConfig };
-    console.log('🎯 Live2D智能缩放系统初始化:', this.config);
+    console.log('🎯 Live2D智能缩放系统初化:', this.config);
 
     if (this.config.autoResize) {
       this.setupAutoResize();
