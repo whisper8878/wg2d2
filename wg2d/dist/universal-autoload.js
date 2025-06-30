@@ -5,7 +5,9 @@
  */
 
 // 使用本地路径
-const live2d_path = './dist/';
+const live2d_path =
+  'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/dist/';
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/whisper8878/model2@master/model/';
 
 // 模型配置 - 默认使用 Ariu 模型
 // 要切换模型，只需修改 DEFAULT_MODEL 的值：
@@ -18,13 +20,13 @@ const MODEL_CONFIGS = {
   ariu: {
     name: 'Ariu',
     message: 'Ariu模型加载成功！',
-    paths: ['./model/ariu/ariu.model3.json'],
+    paths: [`${CDN_BASE}ariu/ariu.model3.json`],
     globalVar: 'ariuModel',
   },
   xiaoeemo: {
     name: '小恶魔',
     message: '小恶魔模型加载成功！',
-    paths: ['./model/xiaoeemo/xiaoeemo.model3.json'],
+    paths: [`${CDN_BASE}xiaoeemo/xiaoeemo.model3.json`],
     globalVar: 'xiaoeemoModel',
   },
 };
@@ -100,13 +102,12 @@ function loadExternalResource(url, type) {
     //console.log('✅ initWidget 函数已准备就绪');
 
     // 构建模型数组
-    const models = [currentModelConfig];
-
-    // 初始化 Widget 配置
+    const models = [currentModelConfig]; // 初始化 Widget 配置
     const config = {
       waifuPath: live2d_path + 'waifu-tips.json',
-      // 使用本地的 Cubism 5 Core（Framework 已在 HTML 中手动加载）
-      cubism5Path: './src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
+      // 使用CDN的 Cubism 5 Core
+      cubism5Path:
+        'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
       // 强制指定使用当前模型（索引0）
       modelId: 0,
       // 强制重置纹理ID
@@ -119,13 +120,10 @@ function loadExternalResource(url, type) {
       tools: ['hitokoto', 'photo', 'info', 'quit'],
       // 传入当前模型列表
       models: models,
-      // 强制不使用CDN模式
-      cdnPath: null,
-      apiPath: null,
     };
 
     //console.log(
-      //`🚀 [通用版本] 初始化 Live2D Widget，当前模型：${currentModelConfig.name}`,
+    //`🚀 [通用版本] 初始化 Live2D Widget，当前模型：${currentModelConfig.name}`,
     //);
     console.log('配置详情:', {
       modelName: currentModelConfig.name,
@@ -182,7 +180,7 @@ function loadExternalResource(url, type) {
                 // 保存到对应的全局变量
                 window[currentModelConfig.globalVar] = model;
                 //console.log(
-                  //`✅ ${currentModelConfig.name}模型实例已保存到 window.${currentModelConfig.globalVar}`,
+                //`✅ ${currentModelConfig.name}模型实例已保存到 window.${currentModelConfig.globalVar}`,
                 //);
 
                 // 创建通用的表情测试函数
@@ -282,7 +280,7 @@ function loadExternalResource(url, type) {
             //console.log('📋 模型参数列表:');
             for (let i = 0; i < paramIds.length; i++) {
               //console.log(
-                //`  ${i}: ${paramIds[i]} = ${paramValues[i].toFixed(3)}`,
+              //`  ${i}: ${paramIds[i]} = ${paramValues[i].toFixed(3)}`,
               //);
             }
           };
@@ -293,7 +291,7 @@ function loadExternalResource(url, type) {
               const oldValue = paramValues[index];
               paramValues[index] = value;
               //console.log(
-                //`✅ 设置参数 ${paramName}: ${oldValue.toFixed(3)} → ${value}`,
+              //`✅ 设置参数 ${paramName}: ${oldValue.toFixed(3)} → ${value}`,
               //);
               return true;
             }
@@ -306,9 +304,9 @@ function loadExternalResource(url, type) {
               const oldValue = paramValues[index];
               paramValues[index] = value;
               //console.log(
-                //`✅ 设置参数[${index}] ${paramIds[index]}: ${oldValue.toFixed(
-                  //3,
-                //)} → ${value}`,
+              //`✅ 设置参数[${index}] ${paramIds[index]}: ${oldValue.toFixed(
+              //3,
+              //)} → ${value}`,
               //);
               return true;
             }
@@ -355,8 +353,8 @@ function loadExternalResource(url, type) {
               currentModel = live2dManager._models.at(0);
               //console.log('✅ 找到Live2D管理器和模型实例');
               //console.log(
-                //'✅ 检测到新的嘴部管理器:',
-                //currentModel._mouthManager,
+              //'✅ 检测到新的嘴部管理器:',
+              //currentModel._mouthManager,
               //);
             }
           }
