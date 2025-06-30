@@ -5,7 +5,9 @@
  */
 
 // 使用本地路径
-const live2d_path = './dist/';
+const live2d_path =
+  'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/dist/';
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/whisper8878/model2@master/model/';
 
 // 模型配置 - 默认使用 Ariu 模型
 // 要切换模型，只需修改 DEFAULT_MODEL 的值：
@@ -18,13 +20,13 @@ const MODEL_CONFIGS = {
   ariu: {
     name: 'Ariu',
     message: 'Ariu模型加载成功！',
-    paths: ['./model/ariu/ariu.model3.json'],
+    paths: [`${CDN_BASE}ariu/ariu.model3.json`],
     globalVar: 'ariuModel',
   },
   xiaoeemo: {
     name: '小恶魔',
     message: '小恶魔模型加载成功！',
-    paths: ['./model/xiaoeemo/xiaoeemo.model3.json'],
+    paths: [`${CDN_BASE}xiaoeemo/xiaoeemo.model3.json`],
     globalVar: 'xiaoeemoModel',
   },
 };
@@ -46,7 +48,7 @@ const Live2DScaleManager = {
   // 初始化缩放系统
   init(customConfig = {}) {
     this.config = { ...this.config, ...customConfig };
-    console.log('🎯 Live2D智能缩放系统初化:', this.config);
+    console.log('🎯 Live2D智能缩放系统初始化:', this.config);
 
     if (this.config.autoResize) {
       this.setupAutoResize();
@@ -106,18 +108,26 @@ const Live2DScaleManager = {
     this.config.scaleFactor = clampedScale;
 
     const canvas = document.getElementById('live2d');
-    if (canvas) {
-      this.setCanvasSize(canvas, clampedScale);
+    if (canvas && canvas.getContext) {
+      // 检查WebGL是否已初始化
+      const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+      if (gl) {
+        this.setCanvasSize(canvas, clampedScale);
 
-      // 触发Live2D重新渲染
-      if (window.modelManager && window.modelManager.cubism5model) {
-        const subdelegates = window.modelManager.cubism5model._subdelegates;
-        if (subdelegates && subdelegates.getSize() > 0) {
-          const subdelegate = subdelegates.at(0);
-          if (subdelegate && subdelegate.resizeCanvas) {
-            subdelegate.resizeCanvas();
+        // 触发Live2D重新渲染
+        if (window.modelManager && window.modelManager.cubism5model) {
+          const subdelegates = window.modelManager.cubism5model._subdelegates;
+          if (subdelegates && subdelegates.getSize() > 0) {
+            const subdelegate = subdelegates.at(0);
+            if (subdelegate && subdelegate.resizeCanvas) {
+              subdelegate.resizeCanvas();
+            }
           }
         }
+      } else {
+        console.warn('⚠️ WebGL未初始化，延迟应用缩放');
+        // 延迟重试
+        setTimeout(() => this.scaleModel(scaleFactor), 1000);
       }
     }
 
@@ -229,28 +239,24 @@ function loadExternalResource(url, type) {
     //console.log('✅ initWidget 函数已准备就绪');
 
     // 构建模型数组
-    const models = [currentModelConfig];
-
-    // 初始化 Widget 配置
+    const models = [currentModelConfig]; // 初始化 Widget 配置
     const config = {
       waifuPath: live2d_path + 'waifu-tips.json',
-      // 使用本地的 Cubism 5 Core（Framework 已在 HTML 中手动加载）
-      cubism5Path: './src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
+      // 使用CDN的 Cubism 5 Core
+      cubism5Path:
+        'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@master/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
       // 强制指定使用当前模型（索引0）
       modelId: 0,
       // 强制重置纹理ID
       modelTexturesId: 0,
       // 禁用拖拽，避免 hitTest 错误
-      drag: false,
+      drag: true,
       // 设置日志级别为详细
       logLevel: 'info',
       // 减少工具按钮，避免 tools.js 错误
       tools: ['hitokoto', 'photo', 'info', 'quit'],
       // 传入当前模型列表
       models: models,
-      // 强制不使用CDN模式
-      cdnPath: null,
-      apiPath: null,
     };
 
     //console.log(
@@ -268,7 +274,7 @@ function loadExternalResource(url, type) {
     sessionStorage.clear();
     //console.log('✅ 缓存已完全清除');
 
-    // 初始化智能缩放系统
+    // 初始化智能缩放系统（但不立即应用）
     Live2DScaleManager.init({
       baseWidth: 400,
       baseHeight: 500,
@@ -276,12 +282,6 @@ function loadExternalResource(url, type) {
       enableHighDPI: true,
       autoResize: true,
     });
-
-    // 预设置canvas尺寸
-    const canvas = document.getElementById('live2d');
-    if (canvas) {
-      Live2DScaleManager.setCanvasSize(canvas);
-    }
 
     // 初始化 Widget
     window.initWidget(config);
@@ -466,6 +466,15 @@ function loadExternalResource(url, type) {
 
         // 创建缩放控制函数
         createScaleControlFunctions();
+
+        // 模型加载完成后应用初始缩放
+        setTimeout(() => {
+          const canvas = document.getElementById('live2d');
+          if (canvas && canvas.getContext('webgl')) {
+            Live2DScaleManager.setCanvasSize(canvas);
+            console.log('🎯 应用初始缩放设置 (2.0x)');
+          }
+        }, 500);
 
         //console.log('✅ 通用测试函数创建完成');
         //console.log('🧪 可用函数:');
@@ -684,15 +693,6 @@ function loadExternalResource(url, type) {
         console.log(
           '  - setModelSize(size) - 使用预设大小 (small/normal/large/xlarge/xxlarge)',
         );
-
-        // 模型加载完成后重新应用缩放
-        setTimeout(() => {
-          const canvas = document.getElementById('live2d');
-          if (canvas) {
-            Live2DScaleManager.setCanvasSize(canvas);
-            console.log('🔄 模型加载完成，重新应用缩放设置');
-          }
-        }, 1000);
       } catch (error) {
         console.error('❌ 创建缩放控制函数时出错:', error);
       }
