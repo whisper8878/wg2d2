@@ -113,7 +113,7 @@ function loadExternalResource(url, type) {
       // 强制重置纹理ID
       modelTexturesId: 0,
       // 禁用拖拽，避免 hitTest 错误
-      drag: false,
+      drag: true,
       // 设置日志级别为详细
       logLevel: 'info',
       // 减少工具按钮，避免 tools.js 错误
