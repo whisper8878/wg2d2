@@ -241,7 +241,7 @@ function loadExternalResource(url, type) {
     // 构建模型数组
     const models = [currentModelConfig]; // 初始化 Widget 配置
     const config = {
-      waifuPath: live2d_path + 'waifu-tips.json',      // 使用CDN的 Cubism 5 Core
+      waifuPath: live2d_path + 'waifu-tips.json', // 使用CDN的 Cubism 5 Core
       cubism5Path:
         'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@main/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
       // 强制指定使用当前模型（索引0）
@@ -249,7 +249,7 @@ function loadExternalResource(url, type) {
       // 强制重置纹理ID
       modelTexturesId: 0,
       // 禁用拖拽，避免 hitTest 错误
-      drag: true,
+      drag: false,
       // 设置日志级别为详细
       logLevel: 'info',
       // 减少工具按钮，避免 tools.js 错误
