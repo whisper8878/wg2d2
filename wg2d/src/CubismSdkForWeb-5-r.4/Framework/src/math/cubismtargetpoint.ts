@@ -107,7 +107,7 @@ export class CubismTargetPoint {
         (CubismMath.sqrt(maxA * maxA + 16.0 * maxA * d - 8.0 * maxA * d) -
           maxA);
       const curV: number = CubismMath.sqrt(
-        this._faceVX * this._faceVX + this._faceVY * this._faceVY
+        this._faceVX * this._faceVX + this._faceVY * this._faceVY,
       );
 
       if (curV > maxV) {
@@ -160,10 +160,136 @@ export class CubismTargetPoint {
   private _userTimeSeconds: number; // デルタ時間の積算値[秒]
 }
 
+/**
+ * 嘴部控制功能
+ *
+ * 嘴部开合控制功能を提供するクラス。
+ * CubismTargetPointをベースにした嘴部専用の制御システム
+ */
+export class CubismMouthTargetPoint {
+  /**
+   * コンストラクタ
+   */
+  public constructor() {
+    this._mouthTargetValue = 0.0;
+    this._mouthValue = 0.0;
+    this._mouthVelocity = 0.0;
+    this._lastTimeSeconds = 0.0;
+    this._userTimeSeconds = 0.0;
+  }
+
+  /**
+   * 更新処理
+   */
+  public update(deltaTimeSeconds: number): void {
+    // デルタ時間を加算する
+    this._userTimeSeconds += deltaTimeSeconds;
+
+    // 嘴部の開閉速度設定（拖拽系统の速度を参考）
+    const mouthParamMaxV: number = 40.0 / 10.0; // 7.5秒間に40分移動
+    const maxV: number = (mouthParamMaxV * 1.0) / FrameRate; // 1frameあたりに変化できる速度の上限
+
+    if (this._lastTimeSeconds == 0.0) {
+      this._lastTimeSeconds = this._userTimeSeconds;
+      return;
+    }
+
+    const deltaTimeWeight: number =
+      (this._userTimeSeconds - this._lastTimeSeconds) * FrameRate;
+    this._lastTimeSeconds = this._userTimeSeconds;
+
+    // 加速時間の設定
+    const timeToMaxSpeed = 0.15;
+    const frameToMaxSpeed = timeToMaxSpeed * FrameRate;
+    const maxA: number = (deltaTimeWeight * maxV) / frameToMaxSpeed;
+
+    // 目標値との差分を計算
+    const diff: number = this._mouthTargetValue - this._mouthValue;
+
+    if (CubismMath.abs(diff) <= Epsilon) {
+      return;
+    }
+
+    // 目標速度を計算
+    const targetVelocity: number = diff > 0 ? maxV : -maxV;
+
+    // 加速度を計算
+    let acceleration: number = targetVelocity - this._mouthVelocity;
+    if (CubismMath.abs(acceleration) > maxA) {
+      acceleration = acceleration > 0 ? maxA : -maxA;
+    }
+
+    // 速度を更新
+    this._mouthVelocity += acceleration;
+
+    // 減速制御（目標値に近づいたら減速）
+    const distanceToTarget = CubismMath.abs(diff);
+    const maxVForDistance =
+      0.5 *
+      (CubismMath.sqrt(
+        maxA * maxA +
+          16.0 * maxA * distanceToTarget -
+          8.0 * maxA * distanceToTarget,
+      ) -
+        maxA);
+
+    if (CubismMath.abs(this._mouthVelocity) > maxVForDistance) {
+      this._mouthVelocity =
+        this._mouthVelocity > 0 ? maxVForDistance : -maxVForDistance;
+    }
+
+    // 位置を更新
+    this._mouthValue += this._mouthVelocity;
+
+    // 範囲制限 (0.0 ~ 1.0)
+    this._mouthValue = CubismMath.max(
+      0.0,
+      CubismMath.min(1.0, this._mouthValue),
+    );
+  }
+
+  /**
+   * 嘴部開度の値を取得
+   *
+   * @return 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public getMouthValue(): number {
+    return this._mouthValue;
+  }
+
+  /**
+   * 嘴部開度の目標値を設定
+   *
+   * @param value 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public setMouthTarget(value: number): void {
+    this._mouthTargetValue = CubismMath.max(0.0, CubismMath.min(1.0, value));
+  }
+
+  /**
+   * 嘴部開度を即座に設定（アニメーションなし）
+   *
+   * @param value 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public setMouthValueImmediate(value: number): void {
+    this._mouthValue = CubismMath.max(0.0, CubismMath.min(1.0, value));
+    this._mouthTargetValue = this._mouthValue;
+    this._mouthVelocity = 0.0;
+  }
+
+  private _mouthTargetValue: number; // 嘴部開度の目標値（この値に近づいていく）
+  private _mouthValue: number; // 現在の嘴部開度（0.0 ~ 1.0）
+  private _mouthVelocity: number; // 嘴部開度の変化速度
+  private _lastTimeSeconds: number; // 最後の実行時間[秒]
+  private _userTimeSeconds: number; // デルタ時間の積算値[秒]
+}
+
 // Namespace definition for compatibility.
 import * as $ from './cubismtargetpoint';
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Live2DCubismFramework {
   export const CubismTargetPoint = $.CubismTargetPoint;
   export type CubismTargetPoint = $.CubismTargetPoint;
+  export const CubismMouthTargetPoint = $.CubismMouthTargetPoint;
+  export type CubismMouthTargetPoint = $.CubismMouthTargetPoint;
 }

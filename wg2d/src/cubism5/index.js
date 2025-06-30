@@ -758,6 +758,26 @@ class EnhancedLAppModel extends LAppModel {
       return this.startRandomMotion(group, priority);
     };
 
+    // Global mouth control API
+    window.setMouthTarget = (value) => {
+      console.log(`👄 Setting mouth target: ${value}`);
+      const lapplive2dmanager = this._subdelegates.at(0).getLive2DManager();
+      return lapplive2dmanager.setMouthTarget(value);
+    };
+
+    window.setMouthValueImmediate = (value) => {
+      console.log(`👄 Setting mouth value immediate: ${value}`);
+      const lapplive2dmanager = this._subdelegates.at(0).getLive2DManager();
+      return lapplive2dmanager.setMouthValueImmediate(value);
+    };
+
+    window.getMouthValue = () => {
+      const lapplive2dmanager = this._subdelegates.at(0).getLive2DManager();
+      const value = lapplive2dmanager.getMouthValue();
+      console.log(`👄 Current mouth value: ${value}`);
+      return value;
+    };
+
     // Status check API
     window.checkAutoLoadStatus = () => {
       console.log('📊 Auto-load Status:');

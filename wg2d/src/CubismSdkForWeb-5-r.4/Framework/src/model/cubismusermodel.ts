@@ -12,11 +12,14 @@ import { ICubismModelSetting } from '../icubismmodelsetting';
 import { CubismIdHandle } from '../id/cubismid';
 import { Constant } from '../live2dcubismframework';
 import { CubismModelMatrix } from '../math/cubismmodelmatrix';
-import { CubismTargetPoint } from '../math/cubismtargetpoint';
+import {
+  CubismMouthTargetPoint,
+  CubismTargetPoint,
+} from '../math/cubismtargetpoint';
 import {
   ACubismMotion,
   BeganMotionCallback,
-  FinishedMotionCallback
+  FinishedMotionCallback,
 } from '../motion/acubismmotion';
 import { CubismExpressionMotion } from '../motion/cubismexpressionmotion';
 import { CubismExpressionMotionManager } from '../motion/cubismexpressionmotionmanager';
@@ -93,6 +96,30 @@ export class CubismUserModel {
   }
 
   /**
+   * 嘴部開度の目標値を設定
+   * @param value 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public setMouthTarget(value: number): void {
+    this._mouthManager.setMouthTarget(value);
+  }
+
+  /**
+   * 嘴部開度を即座に設定（アニメーションなし）
+   * @param value 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public setMouthValueImmediate(value: number): void {
+    this._mouthManager.setMouthValueImmediate(value);
+  }
+
+  /**
+   * 現在の嘴部開度を取得
+   * @return 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public getMouthValue(): number {
+    return this._mouthManager.getMouthValue();
+  }
+
+  /**
    * 加速度の情報を設定する
    * @param x X軸方向の加速度
    * @param y Y軸方向の加速度
@@ -151,7 +178,7 @@ export class CubismUserModel {
     this._model.saveParameters();
     this._modelMatrix = new CubismModelMatrix(
       this._model.getCanvasWidth(),
-      this._model.getCanvasHeight()
+      this._model.getCanvasHeight(),
     );
   }
 
@@ -177,7 +204,7 @@ export class CubismUserModel {
     modelSetting?: ICubismModelSetting,
     group?: string,
     index?: number,
-    shouldCheckMotionConsistency: boolean = false
+    shouldCheckMotionConsistency: boolean = false,
   ): CubismMotion {
     if (buffer == null || size == 0) {
       CubismLogError('Failed to loadMotion().');
@@ -189,7 +216,7 @@ export class CubismUserModel {
       size,
       onFinishedMotionHandler,
       onBeganMotionHandler,
-      shouldCheckMotionConsistency
+      shouldCheckMotionConsistency,
     );
 
     if (motion == null) {
@@ -201,7 +228,7 @@ export class CubismUserModel {
     if (modelSetting) {
       const fadeInTime: number = modelSetting.getMotionFadeInTimeValue(
         group,
-        index
+        index,
       );
       if (fadeInTime >= 0.0) {
         motion.setFadeInTime(fadeInTime);
@@ -225,7 +252,7 @@ export class CubismUserModel {
   public loadExpression(
     buffer: ArrayBuffer,
     size: number,
-    name: string
+    name: string,
   ): ACubismMotion {
     if (buffer == null || size == 0) {
       CubismLogError('Failed to loadExpression().');
@@ -284,7 +311,7 @@ export class CubismUserModel {
   public isHit(
     drawableId: CubismIdHandle,
     pointX: number,
-    pointY: number
+    pointY: number,
   ): boolean {
     const drawIndex: number = this._model.getDrawableIndex(drawableId);
 
@@ -392,7 +419,7 @@ export class CubismUserModel {
   public static cubismDefaultMotionEventCallback(
     caller: CubismMotionQueueManager,
     eventValue: csmString,
-    customData: CubismUserModel
+    customData: CubismUserModel,
   ): void {
     const model: CubismUserModel = customData;
 
@@ -435,7 +462,7 @@ export class CubismUserModel {
     this._motionManager = new CubismMotionManager();
     this._motionManager.setEventCallback(
       CubismUserModel.cubismDefaultMotionEventCallback,
-      this
+      this,
     );
 
     // 表情マネージャーを作成
@@ -443,6 +470,9 @@ export class CubismUserModel {
 
     // ドラッグによるアニメーション
     this._dragManager = new CubismTargetPoint();
+
+    // 嘴部制御によるアニメーション
+    this._mouthManager = new CubismMouthTargetPoint();
   }
 
   /**
@@ -489,6 +519,7 @@ export class CubismUserModel {
   protected _modelMatrix: CubismModelMatrix; // モデル行列
   protected _pose: CubismPose; // ポーズ管理
   protected _dragManager: CubismTargetPoint; // マウスドラッグ
+  protected _mouthManager: CubismMouthTargetPoint; // 嘴部制御
   protected _physics: CubismPhysics; // 物理演算
   protected _modelUserData: CubismModelUserData; // ユーザーデータ
 

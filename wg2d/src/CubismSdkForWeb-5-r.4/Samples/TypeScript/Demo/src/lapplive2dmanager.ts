@@ -40,6 +40,43 @@ export class LAppLive2DManager {
   }
 
   /**
+   * 嘴部開度の目標値を設定
+   *
+   * @param value 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public setMouthTarget(value: number): void {
+    const model: LAppModel = this._models.at(0);
+    if (model) {
+      model.setMouthTarget(value);
+    }
+  }
+
+  /**
+   * 嘴部開度を即座に設定（アニメーションなし）
+   *
+   * @param value 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public setMouthValueImmediate(value: number): void {
+    const model: LAppModel = this._models.at(0);
+    if (model) {
+      model.setMouthValueImmediate(value);
+    }
+  }
+
+  /**
+   * 現在の嘴部開度を取得
+   *
+   * @return 嘴部開度の値（0.0 ~ 1.0）
+   */
+  public getMouthValue(): number {
+    const model: LAppModel = this._models.at(0);
+    if (model) {
+      return model.getMouthValue();
+    }
+    return 0.0;
+  }
+
+  /**
    * 画面をタップした時の処理
    *
    * @param x 画面のX座標
@@ -48,7 +85,7 @@ export class LAppLive2DManager {
   public onTap(x: number, y: number): void {
     if (LAppDefine.DebugLogEnable) {
       LAppPal.printMessage(
-        `[APP]tap point: {x: ${x.toFixed(2)} y: ${y.toFixed(2)}}`
+        `[APP]tap point: {x: ${x.toFixed(2)} y: ${y.toFixed(2)}}`,
       );
     }
 
@@ -67,7 +104,7 @@ export class LAppLive2DManager {
         LAppDefine.MotionGroupTapBody,
         LAppDefine.PriorityNormal,
         this.finishedMotion,
-        this.beganMotion
+        this.beganMotion,
       );
     }
   }
