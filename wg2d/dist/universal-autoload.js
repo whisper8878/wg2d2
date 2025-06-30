@@ -4,7 +4,7 @@
  * 基于 live2d-widget 项目
  */
 
-// 使用本地路径
+// 使用本地路径1
 const live2d_path =
   'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@2ad92f3ffdd5959305c3c80ab039e781ef0e6d16/wg2d/dist/';
 const CDN_BASE = 'https://raw.githubusercontent.com/whisper8878/model2/master/model/';
