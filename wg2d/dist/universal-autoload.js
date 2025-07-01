@@ -7,7 +7,8 @@
 // 使用本地路径1
 const live2d_path =
   'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@c26cd8784bda531cd8e41420be786af89bae7592/wg2d/dist/';
-const CDN_BASE = 'https://raw.githubusercontent.com/whisper8878/model2/master/model/';
+const CDN_BASE =
+  'https://raw.githubusercontent.com/whisper8878/model2/master/model/';
 
 // 模型配置 - 默认使用 Ariu 模型
 // 要切换模型，只需修改 DEFAULT_MODEL 的值：
@@ -241,7 +242,7 @@ function loadExternalResource(url, type) {
     // 构建模型数组
     const models = [currentModelConfig]; // 初始化 Widget 配置
     const config = {
-      waifuPath: live2d_path + 'waifu-tips.json',      // 使用CDN的 Cubism 5 Core
+      waifuPath: live2d_path + 'waifu-tips.json', // 使用CDN的 Cubism 5 Core
       cubism5Path:
         'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@c26cd8784bda531cd8e41420be786af89bae7592/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
       // 强制指定使用当前模型（索引0）
@@ -360,9 +361,7 @@ function loadExternalResource(url, type) {
               const key = model._expressions._keyValues[i].first;
               console.log(`  ${i}: ${key}`);
             }
-          };
-
-          window.testExpressionByIndex = function (index) {
+          };          window.testExpressionByIndex = function (index) {
             if (model._expressions && index < model._expressions.getSize()) {
               const key = model._expressions._keyValues[index].first;
               console.log(`🎭 测试表情: ${key}`);
@@ -377,6 +376,86 @@ function loadExternalResource(url, type) {
                 );
                 return true;
               }
+            }
+            return false;
+          };
+
+          // 添加按名称播放表情的函数（兼容原版API）
+          window.playExpression = function (expressionName) {
+            if (!model._expressions) {
+              console.log('❌ 表情系统未初始化');
+              return false;
+            }
+
+            // 查找匹配的表情
+            let foundKey = null;
+            for (let i = 0; i < model._expressions.getSize(); i++) {
+              const key = model._expressions._keyValues[i].first;
+              if (key === expressionName || key.includes(expressionName)) {
+                foundKey = key;
+                break;
+              }
+            }
+
+            if (!foundKey) {
+              console.log(`❌ 表情不存在: ${expressionName}`);
+              console.log('💡 可用表情列表:');
+              window.listExpressions();
+              return false;
+            }
+
+            try {
+              const expression = model._expressions.getValue(foundKey);
+              if (expression && model._expressionManager) {
+                model._expressionManager.stopAllMotions();
+                
+                // 使用 setTimeout 确保之前的动作已停止
+                setTimeout(() => {
+                  const handle = model._expressionManager.startMotionPriority(
+                    expression,
+                    false,
+                    10, // 使用更高的优先级
+                  );
+
+                  if (handle !== -1) {
+                    console.log(`🎭 播放表情: ${expressionName} (${foundKey})`);
+                    
+                    // 维持表情状态的循环，对于说话等连续动作至关重要
+                    const maintainExpression = () => {
+                      if (model._expressionManager.isFinished()) {
+                        // 如果表情播放完成，重新开始以维持状态
+                        const newHandle = model._expressionManager.startMotionPriority(
+                          expression,
+                          false,
+                          10,
+                        );
+                        if (newHandle !== -1) {
+                          setTimeout(maintainExpression, 100);
+                        }
+                      } else {
+                        // 如果还在播放，则继续检查
+                        setTimeout(maintainExpression, 100);
+                      }
+                    };
+
+                    // 启动维持循环
+                    setTimeout(maintainExpression, 100);
+                    return true;
+                  }
+                }, 50); // 50ms 延迟
+              }
+            } catch (error) {
+              console.error(`❌ 表情播放错误: ${error.message}`);
+            }
+            return false;
+          };
+
+          // 停止所有表情的函数
+          window.stopAllExpressions = function () {
+            if (model._expressionManager) {
+              model._expressionManager.stopAllMotions();
+              console.log('🛑 已停止所有表情');
+              return true;
             }
             return false;
           };
@@ -473,12 +552,12 @@ function loadExternalResource(url, type) {
             Live2DScaleManager.setCanvasSize(canvas);
             console.log('🎯 应用初始缩放设置 (2.0x)');
           }
-        }, 500);
-
-        //console.log('✅ 通用测试函数创建完成');
+        }, 500);        //console.log('✅ 通用测试函数创建完成');
         //console.log('🧪 可用函数:');
         //console.log('  - listExpressions() - 列出所有表情');
         //console.log('  - testExpressionByIndex(index) - 测试指定索引的表情');
+        //console.log('  - playExpression(name) - 按名称播放表情');
+        //console.log('  - stopAllExpressions() - 停止所有表情');
         //console.log('  - listMotions() - 列出所有动作');
         //console.log('  - testMotionByIndex(index) - 测试指定索引的动作');
         //console.log('  - listParameters() - 列出所有参数');
