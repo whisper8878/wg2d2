@@ -124,7 +124,7 @@ const ModelDiscovery = {
   // GitHub API 模型探索器 - 实验性功能
   async exploreGitHubRepo() {
     try {
-      //console.log('🔍 尝试通过GitHub API探索模型库...');
+      console.log('🔍 尝试通过GitHub API探索模型库...');
 
       // 注意：GitHub API 有速率限制，这里只是示例
       const apiUrl =
@@ -143,10 +143,10 @@ const ModelDiscovery = {
           .filter((item) => item.type === 'dir')
           .map((item) => item.name);
 
-        //console.log(
-        //  `📁 GitHub API 发现 ${modelFolders.length} 个模型文件夹:`,
-        //  modelFolders,
-        //);
+        console.log(
+          `📁 GitHub API 发现 ${modelFolders.length} 个模型文件夹:`,
+          modelFolders,
+        );
         return modelFolders;
       }
     } catch (error) {
@@ -160,7 +160,7 @@ const ModelDiscovery = {
   async discoverModelsLazy(requestedModel = null) {
     // 如果请求的是已知模型，直接返回
     if (requestedModel && this.knownModels[requestedModel]) {
-      //console.log(`✅ 模型 ${requestedModel} 已在预配置列表中`);
+      console.log(`✅ 模型 ${requestedModel} 已在预配置列表中`);
       return { [requestedModel]: this.knownModels[requestedModel] };
     }
 
@@ -170,15 +170,15 @@ const ModelDiscovery = {
       this.discoveryState.discoveryCache.has(requestedModel)
     ) {
       const cached = this.discoveryState.discoveryCache.get(requestedModel);
-      //console.log(`📋 从缓存获取模型: ${requestedModel}`);
+      console.log(`📋 从缓存获取模型: ${requestedModel}`);
       return cached.exists ? { [requestedModel]: cached.config } : {};
     }
 
-    //console.log(`🔍 懒加载检测模型: ${requestedModel || '所有模型'}...`);
+    console.log(`🔍 懒加载检测模型: ${requestedModel || '所有模型'}...`);
 
     // 如果正在发现中，等待完成
     if (this.discoveryState.isDiscovering) {
-      //console.log('⏳ 模型发现正在进行中，请稍候...');
+      console.log('⏳ 模型发现正在进行中，请稍候...');
       return {};
     }
 
@@ -193,7 +193,7 @@ const ModelDiscovery = {
       }
 
       // 否则提示用户使用完整发现
-      //console.log('💡 提示：使用 discoverAllModels() 来发现所有可用模型');
+      console.log('💡 提示：使用 discoverAllModels() 来发现所有可用模型');
       this.discoveryState.isDiscovering = false;
       return {};
     } catch (error) {
@@ -225,7 +225,7 @@ const ModelDiscovery = {
 
       for (const modelUrl of possiblePaths) {
         try {
-          //console.log(`🔍 检测模型路径: ${modelUrl}`);
+          console.log(`🔍 检测模型路径: ${modelUrl}`);
 
           const response = await fetch(modelUrl, {
             method: 'HEAD',
@@ -235,7 +235,7 @@ const ModelDiscovery = {
           });
 
           if (response.ok) {
-            //console.log(`✅ 发现模型: ${modelName}`);
+            console.log(`✅ 发现模型: ${modelName}`);
             const normalizedName = modelName.replace(/\s+/g, '').toLowerCase();
             const config = {
               name: this.formatModelName(modelName),
@@ -277,11 +277,11 @@ const ModelDiscovery = {
       this.discoveryState.hasDiscovered &&
       Date.now() - this.discoveryState.lastDiscoveryTime < 300000
     ) {
-      //console.log('📋 使用缓存的发现结果（5分钟内有效）');
+      console.log('📋 使用缓存的发现结果（5分钟内有效）');
       return this.discoveredModels;
     }
 
-    //console.log('🔍 开始完整模型发现...');
+    console.log('🔍 开始完整模型发现...');
     this.discoveryState.isDiscovering = true;
 
     try {
@@ -343,7 +343,7 @@ const ModelDiscovery = {
       this.discoveryState.lastDiscoveryTime = Date.now();
       this.discoveryState.isDiscovering = false;
 
-      //console.log(`🎯 完整模型发现完成! 发现了 ${discoveredCount} 个新模型`);
+      console.log(`🎯 完整模型发现完成! 发现了 ${discoveredCount} 个新模型`);
       return this.discoveredModels;
     } catch (error) {
       console.error('❌ 完整模型发现出错:', error);
@@ -354,7 +354,7 @@ const ModelDiscovery = {
 
   // 动态发现模型的方法（保持兼容性，但改为调用完整发现）
   async discoverModels() {
-    //console.log('🔍 开始动态发现模型...');
+    console.log('🔍 开始动态发现模型...');
 
     // 尝试通过 GitHub API 获取最新模型列表
     const githubModels = await this.exploreGitHubRepo();
@@ -414,7 +414,7 @@ const ModelDiscovery = {
 
           for (const modelUrl of possiblePaths) {
             try {
-              //console.log(`🔍 检测模型: ${modelName} - ${modelUrl}`);
+              console.log(`🔍 检测模型: ${modelName} - ${modelUrl}`);
 
               const response = await fetch(modelUrl, {
                 method: 'HEAD',
@@ -424,7 +424,7 @@ const ModelDiscovery = {
               });
 
               if (response.ok) {
-                //console.log(`✅ 发现模型: ${modelName}`);
+                console.log(`✅ 发现模型: ${modelName}`);
                 const normalizedName = modelName
                   .replace(/\s+/g, '')
                   .toLowerCase();
@@ -460,7 +460,7 @@ const ModelDiscovery = {
       }
     }
 
-    //console.log(`🎯 模型发现完成! 发现了 ${discoveredCount} 个新模型`);
+    console.log(`🎯 模型发现完成! 发现了 ${discoveredCount} 个新模型`);
     return this.discoveredModels;
   }, // 格式化模型名称
   formatModelName(modelName) {
@@ -482,12 +482,12 @@ const ModelDiscovery = {
   // 列出所有模型
   listAllModels() {
     const allModels = this.getAllModels();
-    //console.log('📋 所有可用模型:');
+    console.log('📋 所有可用模型:');
     Object.entries(allModels).forEach(([id, config]) => {
       const source = config.discovered ? '(动态发现)' : '(预配置)';
-      //console.log(
-      //  `  - ${id}: ${config.name} ${source} - ${config.description}`,
-      //);
+      console.log(
+        `  - ${id}: ${config.name} ${source} - ${config.description}`,
+      );
     });
     return allModels;
   },
@@ -498,22 +498,22 @@ const ModelDiscovery = {
 
     // 如果模型不在已知列表中，尝试懒加载检测
     if (!modelConfig) {
-      //console.log(`🔍 模型 ${modelId} 不在预配置列表中，尝试动态检测...`);
+      console.log(`🔍 模型 ${modelId} 不在预配置列表中，尝试动态检测...`);
 
       const discovered = await this.discoverModelsLazy(modelId);
       if (Object.keys(discovered).length > 0) {
         const discoveredId = Object.keys(discovered)[0];
         modelConfig = discovered[discoveredId];
-        //console.log(`✅ 动态发现模型: ${modelConfig.name}`);
+        console.log(`✅ 动态发现模型: ${modelConfig.name}`);
       } else {
         console.error(`❌ 模型不存在: ${modelId}`);
-        //console.log('💡 可用模型列表:');
+        console.log('💡 可用模型列表:');
         this.listAllModels();
         return false;
       }
     }
 
-    //console.log(`🔄 切换到模型: ${modelConfig.name}`);
+    console.log(`🔄 切换到模型: ${modelConfig.name}`);
     this.currentModel = modelId;
 
     // 重新初始化模型系统
@@ -555,12 +555,486 @@ const ModelDiscovery = {
       // 重新初始化
       if (window.initWidget) {
         window.initWidget(config);
-        //console.log(`✅ ${modelConfig.name} 模型切换成功!`);
+        console.log(`✅ ${modelConfig.name} 模型切换成功!`);
+
+        // 等待模型加载完成后重新创建函数
+        this.waitForModelAndRecreateFunction(modelConfig);
+
         return true;
       }
     } catch (error) {
       console.error(`❌ 模型切换失败:`, error);
       return false;
+    }
+  },
+
+  // 等待模型加载完成并重新创建函数
+  waitForModelAndRecreateFunction(modelConfig) {
+    let checkCount = 0;
+    const maxChecks = 50; // 最多检查50次，每次间隔200ms，总共10秒
+
+    const checkModelLoaded = () => {
+      checkCount++;
+
+      try {
+        // 检查模型是否加载完成
+        const manager = window.modelManager?.cubism5model;
+        if (
+          manager &&
+          manager._subdelegates &&
+          manager._subdelegates.getSize() > 0
+        ) {
+          const subdelegate = manager._subdelegates.at(0);
+          if (subdelegate && subdelegate._live2dManager) {
+            const live2dManager = subdelegate._live2dManager;
+            if (live2dManager._models && live2dManager._models.getSize() > 0) {
+              const model = live2dManager._models.at(0);
+
+              if (model && model._expressions && model._motions) {
+                console.log(
+                  `🔄 模型 ${modelConfig.name} 加载完成，重新创建函数...`,
+                );
+
+                // 保存到对应的全局变量
+                window[modelConfig.globalVar] = model;
+
+                // 重新创建所有测试函数
+                this.recreateAllFunctions(model);
+
+                console.log(`✅ 模型 ${modelConfig.name} 函数重新创建完成!`);
+                return;
+              }
+            }
+          }
+        }
+
+        // 如果还没加载完成且未超时，继续检查
+        if (checkCount < maxChecks) {
+          setTimeout(checkModelLoaded, 200);
+        } else {
+          console.warn(
+            `⚠️ 模型 ${modelConfig.name} 加载超时，可能部分功能不可用`,
+          );
+        }
+      } catch (error) {
+        console.error(`❌ 检查模型加载状态时出错:`, error);
+        if (checkCount < maxChecks) {
+          setTimeout(checkModelLoaded, 200);
+        }
+      }
+    };
+
+    // 开始检查
+    setTimeout(checkModelLoaded, 500); // 延迟500ms开始检查，给模型初始化一些时间
+  },
+
+  // 重新创建所有函数
+  recreateAllFunctions(model) {
+    try {
+      // 重新创建表情和动作测试函数
+      this.createUniversalTestFunctions(model);
+
+      // 重新创建实时参数控制函数
+      this.createRealTimeParameterControl(model);
+
+      // 重新创建缩放控制函数
+      this.createScaleControlFunctions();
+    } catch (error) {
+      console.error('❌ 重新创建函数时出错:', error);
+    }
+  },
+
+  // 创建通用测试函数
+  createUniversalTestFunctions(model) {
+    try {
+      //console.log('🧪 创建通用测试函数...');
+
+      // 表情测试函数
+      if (model._expressions) {
+        console.log('  - 表情数量:', model._expressions.getSize());
+
+        window.listExpressions = function () {
+          console.log('📋 可用表情列表:');
+          for (let i = 0; i < model._expressions.getSize(); i++) {
+            const key = model._expressions._keyValues[i].first;
+            console.log(`  ${i}: ${key}`);
+          }
+        };
+
+        window.testExpressionByIndex = function (index) {
+          if (model._expressions && index < model._expressions.getSize()) {
+            const key = model._expressions._keyValues[index].first;
+            console.log(`🎭 测试表情: ${key}`);
+
+            // 使用表情管理器播放表情
+            const expression = model._expressions.getValue(key);
+            if (expression && model._expressionManager) {
+              model._expressionManager.startMotionPriority(
+                expression,
+                false,
+                10,
+              );
+              return true;
+            }
+          }
+          return false;
+        };
+
+        // 添加按名称播放表情的函数（兼容原版API）
+        window.playExpression = function (expressionName) {
+          if (!model._expressions) {
+            console.log('❌ 表情系统未初始化');
+            return false;
+          }
+
+          // 查找匹配的表情
+          let foundKey = null;
+          for (let i = 0; i < model._expressions.getSize(); i++) {
+            const key = model._expressions._keyValues[i].first;
+            if (key === expressionName || key.includes(expressionName)) {
+              foundKey = key;
+              break;
+            }
+          }
+
+          if (!foundKey) {
+            console.log(`❌ 表情不存在: ${expressionName}`);
+            console.log('💡 可用表情列表:');
+            window.listExpressions();
+            return false;
+          }
+
+          try {
+            const expression = model._expressions.getValue(foundKey);
+            if (expression && model._expressionManager) {
+              model._expressionManager.stopAllMotions();
+
+              // 使用 setTimeout 确保之前的动作已停止
+              setTimeout(() => {
+                const handle = model._expressionManager.startMotionPriority(
+                  expression,
+                  false,
+                  10, // 使用更高的优先级
+                );
+
+                if (handle !== -1) {
+                  console.log(`🎭 播放表情: ${expressionName} (${foundKey})`);
+
+                  // 维持表情状态的循环，对于说话等连续动作至关重要
+                  const maintainExpression = () => {
+                    if (model._expressionManager.isFinished()) {
+                      // 如果表情播放完成，重新开始以维持状态
+                      const newHandle =
+                        model._expressionManager.startMotionPriority(
+                          expression,
+                          false,
+                          10,
+                        );
+                      if (newHandle !== -1) {
+                        setTimeout(maintainExpression, 100);
+                      }
+                    } else {
+                      // 如果还在播放，则继续检查
+                      setTimeout(maintainExpression, 100);
+                    }
+                  };
+
+                  // 启动维持循环
+                  setTimeout(maintainExpression, 100);
+                  return true;
+                }
+              }, 50); // 50ms 延迟
+            }
+          } catch (error) {
+            console.error(`❌ 表情播放错误: ${error.message}`);
+          }
+          return false;
+        };
+
+        // 停止所有表情的函数
+        window.stopAllExpressions = function () {
+          if (model._expressionManager) {
+            model._expressionManager.stopAllMotions();
+            console.log('🛑 已停止所有表情');
+            return true;
+          }
+          return false;
+        };
+      }
+
+      // 动作测试函数
+      if (model._motions) {
+        console.log('  - 动作数量:', model._motions.getSize());
+
+        window.listMotions = function () {
+          console.log('📋 可用动作列表:');
+          for (let i = 0; i < model._motions.getSize(); i++) {
+            const key = model._motions._keyValues[i].first;
+            console.log(`  ${i}: ${key}`);
+          }
+        };
+
+        window.testMotionByIndex = function (index) {
+          if (model._motions && index < model._motions.getSize()) {
+            const key = model._motions._keyValues[index].first;
+            console.log(`🎬 测试动作: ${key}`);
+
+            // 解析动作键 (格式: group_index)
+            const parts = key.split('_');
+            if (parts.length >= 2) {
+              const group = parts[0];
+              const motionIndex = parseInt(parts[1]);
+              model.startMotion(group, motionIndex, 3);
+              return true;
+            }
+          }
+          return false;
+        };
+      }
+
+      // 参数控制函数
+      if (
+        model._model &&
+        model._model._model &&
+        model._model._model.parameters
+      ) {
+        const paramIds = model._model._model.parameters.ids;
+        const paramValues = model._model._parameterValues;
+
+        window.listParameters = function () {
+          //console.log('📋 模型参数列表:');
+          for (let i = 0; i < paramIds.length; i++) {
+            //console.log(
+            //`  ${i}: ${paramIds[i]} = ${paramValues[i].toFixed(3)}`,
+            //);
+          }
+        };
+
+        window.setParameter = function (paramName, value) {
+          const index = paramIds.indexOf(paramName);
+          if (index >= 0) {
+            const oldValue = paramValues[index];
+            paramValues[index] = value;
+            //console.log(
+            //`✅ 设置参数 ${paramName}: ${oldValue.toFixed(3)} → ${value}`,
+            //);
+            return true;
+          }
+          //console.log(`❌ 未找到参数: ${paramName}`);
+          return false;
+        };
+
+        window.setParameterByIndex = function (index, value) {
+          if (index >= 0 && index < paramIds.length) {
+            const oldValue = paramValues[index];
+            paramValues[index] = value;
+            //console.log(
+            //`✅ 设置参数[${index}] ${paramIds[index]}: ${oldValue.toFixed(
+            //3,
+            //)} → ${value}`,
+            //);
+            return true;
+          }
+          //console.log(`❌ 参数索引 ${index} 超出范围`);
+          return false;
+        };
+      }
+
+      // 创建实时参数控制函数
+      this.createRealTimeParameterControl(model);
+
+      console.log('✅ 通用测试函数创建完成');
+    } catch (error) {
+      console.error('❌ 创建测试函数时出错:', error);
+    }
+  },
+
+  // 创建实时参数控制函数 - 使用新编译的CubismMouthTargetPoint系统
+  createRealTimeParameterControl(model) {
+    try {
+      //console.log('🎮 创建基于新编译系统的实时参数控制函数...');
+
+      // 获取Live2D管理器和模型实例
+      let live2dManager = null;
+      let currentModel = null;
+
+      // 尝试从全局变量获取管理器
+      if (window.modelManager && window.modelManager.cubism5model) {
+        const subdelegates = window.modelManager.cubism5model._subdelegates;
+        if (subdelegates && subdelegates.getSize() > 0) {
+          live2dManager = subdelegates.at(0)._live2dManager;
+          if (live2dManager._models && live2dManager._models.getSize() > 0) {
+            currentModel = live2dManager._models.at(0);
+            //console.log('✅ 找到Live2D管理器和模型实例');
+            //console.log(
+            //'✅ 检测到新的嘴部管理器:',
+            //currentModel._mouthManager,
+            //);
+          }
+        }
+      }
+
+      if (!live2dManager || !currentModel) {
+        //console.error('❌ 无法找到Live2D管理器或模型实例');
+        return;
+      }
+
+      // 创建新的嘴部控制API - 直接使用编译后的系统
+      window.setMouthTarget = function (value) {
+        if (!live2dManager || !currentModel) {
+          //console.error('❌ 系统未就绪');
+          return false;
+        }
+
+        const clampedValue = Math.max(0, Math.min(1, value));
+        live2dManager.setMouthTarget(clampedValue);
+        //console.log(`👄 设置嘴部目标: ${clampedValue}`);
+        return true;
+      };
+
+      window.setMouthImmediate = function (value) {
+        if (!live2dManager || !currentModel) {
+          //console.error('❌ 系统未就绪');
+          return false;
+        }
+
+        const clampedValue = Math.max(0, Math.min(1, value));
+        live2dManager.setMouthValueImmediate(clampedValue);
+        //console.log(`👄 立即设置嘴部: ${clampedValue}`);
+        return true;
+      };
+
+      window.getMouthValue = function () {
+        if (!live2dManager || !currentModel) {
+          return 0;
+        }
+        return live2dManager.getMouthValue();
+      };
+
+      // 说话动画
+      window.startTalking = function (duration = 3000) {
+        if (!live2dManager || !currentModel) {
+          //console.error('❌ 系统未就绪');
+          return false;
+        }
+
+        //console.log(`🗣️ 开始说话动画 (${duration}ms)...`);
+
+        const talkingPattern = [
+          { value: 0.0, duration: 100 },
+          { value: 0.6, duration: 150 },
+          { value: 0.2, duration: 120 },
+          { value: 0.8, duration: 180 },
+          { value: 0.3, duration: 140 },
+          { value: 0.7, duration: 160 },
+          { value: 0.1, duration: 110 },
+          { value: 0.5, duration: 150 },
+          { value: 0.0, duration: 130 },
+        ];
+
+        let currentIndex = 0;
+        const startTime = Date.now();
+
+        function playNext() {
+          if (Date.now() - startTime >= duration) {
+            window.setMouthTarget(0);
+            //console.log('🗣️ 说话动画完成');
+            return;
+          }
+
+          const step = talkingPattern[currentIndex % talkingPattern.length];
+          window.setMouthTarget(step.value);
+
+          setTimeout(() => {
+            currentIndex++;
+            playNext();
+          }, step.duration);
+        }
+
+        playNext();
+        return true;
+      };
+
+      // 闭嘴功能
+      window.closeMouth = function () {
+        return window.setMouthImmediate(0);
+      };
+
+      // 保留旧的API兼容性
+      window.enableLiveMouth = function () {
+        //console.log('✅ 新的嘴部控制系统已自动启用');
+        //console.log('💡 使用 setMouthTarget(value) 来控制嘴部');
+      };
+
+      //console.log('✅ 基于新编译系统的嘴部控制API创建完成');
+    } catch (error) {
+      //console.error('❌ 创建实时参数控制函数时出错:', error);
+    }
+  },
+
+  // 创建缩放控制函数
+  createScaleControlFunctions() {
+    try {
+      console.log('🔧 创建Live2D缩放控制函数...');
+
+      // 缩放模型函数
+      window.scaleModel = function (scaleFactor) {
+        const actualScale = Live2DScaleManager.scaleModel(scaleFactor);
+        console.log(`📏 模型缩放至: ${actualScale}x`);
+        return actualScale;
+      };
+
+      // 重置模型大小
+      window.resetModelSize = function () {
+        return window.scaleModel(1.0);
+      };
+
+      // 放大模型
+      window.enlargeModel = function (factor = 1.5) {
+        const currentScale = Live2DScaleManager.config.scaleFactor;
+        return window.scaleModel(currentScale * factor);
+      };
+
+      // 缩小模型
+      window.shrinkModel = function (factor = 0.75) {
+        const currentScale = Live2DScaleManager.config.scaleFactor;
+        return window.scaleModel(currentScale * factor);
+      };
+
+      // 设置高分辨率模式
+      window.setHighDPI = function (enabled = true) {
+        Live2DScaleManager.config.enableHighDPI = enabled;
+        const canvas = document.getElementById('live2d');
+        if (canvas) {
+          Live2DScaleManager.setCanvasSize(canvas);
+        }
+        console.log(`🖥️ 高分辨率模式: ${enabled ? '启用' : '禁用'}`);
+      };
+
+      // 获取缩放信息
+      window.getModelScale = function () {
+        const info = Live2DScaleManager.getScaleInfo();
+        console.log('📊 当前模型缩放信息:', info);
+        return info;
+      };
+
+      // 预设缩放选项
+      window.setModelSize = function (size) {
+        const presets = {
+          small: 0.8,
+          normal: 1.0,
+          large: 1.5,
+          xlarge: 2.0,
+          xxlarge: 2.5,
+        };
+
+        const scale = presets[size] || parseFloat(size) || 1.0;
+        return window.scaleModel(scale);
+      };
+
+      console.log('✅ 缩放控制函数创建完成');
+    } catch (error) {
+      console.error('❌ 创建缩放控制函数时出错:', error);
     }
   },
 };
@@ -596,7 +1070,7 @@ const Live2DScaleManager = {
   // 初始化缩放系统
   init(customConfig = {}) {
     this.config = { ...this.config, ...customConfig };
-    //console.log('🎯 Live2D智能缩放系统初始化:', this.config);
+    console.log('🎯 Live2D智能缩放系统初始化:', this.config);
 
     if (this.config.autoResize) {
       this.setupAutoResize();
@@ -637,12 +1111,12 @@ const Live2DScaleManager = {
       }
     }
 
-    //console.log('📐 Canvas尺寸设置完成:', {
-    //  scale: scale,
-    //  display: `${displayWidth}x${displayHeight}`,
-    ////  render: `${renderWidth}x${renderHeight}`,
-    //  pixelRatio: pixelRatio,
-    //});
+    console.log('📐 Canvas尺寸设置完成:', {
+      scale: scale,
+      display: `${displayWidth}x${displayHeight}`,
+      render: `${renderWidth}x${renderHeight}`,
+      pixelRatio: pixelRatio,
+    });
 
     return true;
   },
@@ -880,10 +1354,10 @@ function loadExternalResource(url, type) {
             if (live2dManager._models && live2dManager._models.getSize() > 0) {
               const model = live2dManager._models.at(0);
 
-              //console.log('📊 模型加载状态:');
-              //console.log('  - 模型存在:', !!model);
-              //console.log('  - 表情容器:', !!model._expressions);
-              //console.log('  - 动作容器:', !!model._motions);
+              console.log('📊 模型加载状态:');
+              console.log('  - 模型存在:', !!model);
+              console.log('  - 表情容器:', !!model._expressions);
+              console.log('  - 动作容器:', !!model._motions);
 
               if (model) {
                 // 保存到对应的全局变量
@@ -894,6 +1368,12 @@ function loadExternalResource(url, type) {
 
                 // 创建通用的表情测试函数
                 createUniversalTestFunctions(model);
+
+                // 创建实时参数控制函数
+                createRealTimeParameterControl(model);
+
+                // 创建缩放控制函数
+                createScaleControlFunctions();
               }
 
               return !!model;
@@ -909,436 +1389,19 @@ function loadExternalResource(url, type) {
       }
     }
 
-    // 创建通用测试函数
+    // 调用ModelDiscovery的方法来创建函数
     function createUniversalTestFunctions(model) {
-      try {
-        //console.log('🧪 创建通用测试函数...');
-
-        // 表情测试函数
-        if (model._expressions) {
-          //console.log('  - 表情数量:', model._expressions.getSize());
-
-          window.listExpressions = function () {
-            //console.log('📋 可用表情列表:');
-            for (let i = 0; i < model._expressions.getSize(); i++) {
-              const key = model._expressions._keyValues[i].first;
-              //console.log(`  ${i}: ${key}`);
-            }
-          };
-          window.testExpressionByIndex = function (index) {
-            if (model._expressions && index < model._expressions.getSize()) {
-              const key = model._expressions._keyValues[index].first;
-              //console.log(`🎭 测试表情: ${key}`);
-
-              // 使用表情管理器播放表情
-              const expression = model._expressions.getValue(key);
-              if (expression && model._expressionManager) {
-                model._expressionManager.startMotionPriority(
-                  expression,
-                  false,
-                  10,
-                );
-                return true;
-              }
-            }
-            return false;
-          };
-
-          // 添加按名称播放表情的函数（兼容原版API）
-          window.playExpression = function (expressionName) {
-            if (!model._expressions) {
-              //console.log('❌ 表情系统未初始化');
-              return false;
-            }
-
-            // 查找匹配的表情
-            let foundKey = null;
-            for (let i = 0; i < model._expressions.getSize(); i++) {
-              const key = model._expressions._keyValues[i].first;
-              if (key === expressionName || key.includes(expressionName)) {
-                foundKey = key;
-                break;
-              }
-            }
-
-            if (!foundKey) {
-              //console.log(`❌ 表情不存在: ${expressionName}`);
-              //console.log('💡 可用表情列表:');
-              window.listExpressions();
-              return false;
-            }
-
-            try {
-              const expression = model._expressions.getValue(foundKey);
-              if (expression && model._expressionManager) {
-                model._expressionManager.stopAllMotions();
-
-                // 使用 setTimeout 确保之前的动作已停止
-                setTimeout(() => {
-                  const handle = model._expressionManager.startMotionPriority(
-                    expression,
-                    false,
-                    10, // 使用更高的优先级
-                  );
-
-                  if (handle !== -1) {
-                    //console.log(`🎭 播放表情: ${expressionName} (${foundKey})`);
-
-                    // 维持表情状态的循环，对于说话等连续动作至关重要
-                    const maintainExpression = () => {
-                      if (model._expressionManager.isFinished()) {
-                        // 如果表情播放完成，重新开始以维持状态
-                        const newHandle =
-                          model._expressionManager.startMotionPriority(
-                            expression,
-                            false,
-                            10,
-                          );
-                        if (newHandle !== -1) {
-                          setTimeout(maintainExpression, 100);
-                        }
-                      } else {
-                        // 如果还在播放，则继续检查
-                        setTimeout(maintainExpression, 100);
-                      }
-                    };
-
-                    // 启动维持循环
-                    setTimeout(maintainExpression, 100);
-                    return true;
-                  }
-                }, 50); // 50ms 延迟
-              }
-            } catch (error) {
-              console.error(`❌ 表情播放错误: ${error.message}`);
-            }
-            return false;
-          };
-
-          // 停止所有表情的函数
-          window.stopAllExpressions = function () {
-            if (model._expressionManager) {
-              model._expressionManager.stopAllMotions();
-              console.log('🛑 已停止所有表情');
-              return true;
-            }
-            return false;
-          };
-        }
-
-        // 动作测试函数
-        if (model._motions) {
-          //console.log('  - 动作数量:', model._motions.getSize());
-
-          window.listMotions = function () {
-            //console.log('📋 可用动作列表:');
-            for (let i = 0; i < model._motions.getSize(); i++) {
-              const key = model._motions._keyValues[i].first;
-              //console.log(`  ${i}: ${key}`);
-            }
-          };
-
-          window.testMotionByIndex = function (index) {
-            if (model._motions && index < model._motions.getSize()) {
-              const key = model._motions._keyValues[index].first;
-              //console.log(`🎬 测试动作: ${key}`);
-
-              // 解析动作键 (格式: group_index)
-              const parts = key.split('_');
-              if (parts.length >= 2) {
-                const group = parts[0];
-                const motionIndex = parseInt(parts[1]);
-                model.startMotion(group, motionIndex, 3);
-                return true;
-              }
-            }
-            return false;
-          };
-        }
-
-        // 参数控制函数
-        if (
-          model._model &&
-          model._model._model &&
-          model._model._model.parameters
-        ) {
-          const paramIds = model._model._model.parameters.ids;
-          const paramValues = model._model._parameterValues;
-
-          window.listParameters = function () {
-            //console.log('📋 模型参数列表:');
-            for (let i = 0; i < paramIds.length; i++) {
-              //console.log(
-              //`  ${i}: ${paramIds[i]} = ${paramValues[i].toFixed(3)}`,
-              //);
-            }
-          };
-
-          window.setParameter = function (paramName, value) {
-            const index = paramIds.indexOf(paramName);
-            if (index >= 0) {
-              const oldValue = paramValues[index];
-              paramValues[index] = value;
-              //console.log(
-              //`✅ 设置参数 ${paramName}: ${oldValue.toFixed(3)} → ${value}`,
-              //);
-              return true;
-            }
-            //console.log(`❌ 未找到参数: ${paramName}`);
-            return false;
-          };
-
-          window.setParameterByIndex = function (index, value) {
-            if (index >= 0 && index < paramIds.length) {
-              const oldValue = paramValues[index];
-              paramValues[index] = value;
-              //console.log(
-              //`✅ 设置参数[${index}] ${paramIds[index]}: ${oldValue.toFixed(
-              //3,
-              //)} → ${value}`,
-              //);
-              return true;
-            }
-            //console.log(`❌ 参数索引 ${index} 超出范围`);
-            return false;
-          };
-        }
-
-        // 创建实时参数控制函数
-        createRealTimeParameterControl(model);
-
-        // 创建缩放控制函数
-        createScaleControlFunctions();
-
-        // 模型加载完成后应用初始缩放
-        setTimeout(() => {
-          const canvas = document.getElementById('live2d');
-          if (canvas && canvas.getContext('webgl')) {
-            Live2DScaleManager.setCanvasSize(canvas);
-            console.log('🎯 应用初始缩放设置 (2.0x)');
-          }
-        }, 500); //console.log('✅ 通用测试函数创建完成');
-        //console.log('🧪 可用函数:');
-        //console.log('  - listExpressions() - 列出所有表情');
-        //console.log('  - testExpressionByIndex(index) - 测试指定索引的表情');
-        //console.log('  - playExpression(name) - 按名称播放表情');
-        //console.log('  - stopAllExpressions() - 停止所有表情');
-        //console.log('  - listMotions() - 列出所有动作');
-        //console.log('  - testMotionByIndex(index) - 测试指定索引的动作');
-        //console.log('  - listParameters() - 列出所有参数');
-        //console.log('  - setParameter(name, value) - 设置指定参数');
-        //console.log('  - setParameterByIndex(index, value) - 按索引设置参数');
-        //console.log('  - enableLiveMouth() - 启用实时嘴部控制');
-        //console.log('  - enableLiveEyes() - 启用实时眼部控制');
-        //console.log('  - disableLiveControl() - 禁用实时控制');
-      } catch (error) {
-        //console.error('❌ 创建测试函数时出错:', error);
-      }
+      ModelDiscovery.createUniversalTestFunctions(model);
     }
 
     // 创建实时参数控制函数 - 使用新编译的CubismMouthTargetPoint系统
     function createRealTimeParameterControl(model) {
-      try {
-        //console.log('🎮 创建基于新编译系统的实时参数控制函数...');
-
-        // 获取Live2D管理器和模型实例
-        let live2dManager = null;
-        let currentModel = null;
-
-        // 尝试从全局变量获取管理器
-        if (window.modelManager && window.modelManager.cubism5model) {
-          const subdelegates = window.modelManager.cubism5model._subdelegates;
-          if (subdelegates && subdelegates.getSize() > 0) {
-            live2dManager = subdelegates.at(0)._live2dManager;
-            if (live2dManager._models && live2dManager._models.getSize() > 0) {
-              currentModel = live2dManager._models.at(0);
-              //console.log('✅ 找到Live2D管理器和模型实例');
-              //console.log(
-              //'✅ 检测到新的嘴部管理器:',
-              //currentModel._mouthManager,
-              //);
-            }
-          }
-        }
-
-        if (!live2dManager || !currentModel) {
-          //console.error('❌ 无法找到Live2D管理器或模型实例');
-          return;
-        }
-
-        // 创建新的嘴部控制API - 直接使用编译后的系统
-        window.setMouthTarget = function (value) {
-          if (!live2dManager || !currentModel) {
-            //console.error('❌ 系统未就绪');
-            return false;
-          }
-
-          const clampedValue = Math.max(0, Math.min(1, value));
-          live2dManager.setMouthTarget(clampedValue);
-          //console.log(`👄 设置嘴部目标: ${clampedValue}`);
-          return true;
-        };
-
-        window.setMouthImmediate = function (value) {
-          if (!live2dManager || !currentModel) {
-            //console.error('❌ 系统未就绪');
-            return false;
-          }
-
-          const clampedValue = Math.max(0, Math.min(1, value));
-          live2dManager.setMouthValueImmediate(clampedValue);
-          //console.log(`👄 立即设置嘴部: ${clampedValue}`);
-          return true;
-        };
-
-        window.getMouthValue = function () {
-          if (!live2dManager || !currentModel) {
-            return 0;
-          }
-          return live2dManager.getMouthValue();
-        };
-
-        // 说话动画
-        window.startTalking = function (duration = 3000) {
-          if (!live2dManager || !currentModel) {
-            //console.error('❌ 系统未就绪');
-            return false;
-          }
-
-          //console.log(`🗣️ 开始说话动画 (${duration}ms)...`);
-
-          const talkingPattern = [
-            { value: 0.0, duration: 100 },
-            { value: 0.6, duration: 150 },
-            { value: 0.2, duration: 120 },
-            { value: 0.8, duration: 180 },
-            { value: 0.3, duration: 140 },
-            { value: 0.7, duration: 160 },
-            { value: 0.1, duration: 110 },
-            { value: 0.5, duration: 150 },
-            { value: 0.0, duration: 130 },
-          ];
-
-          let currentIndex = 0;
-          const startTime = Date.now();
-
-          function playNext() {
-            if (Date.now() - startTime >= duration) {
-              window.setMouthTarget(0);
-              //console.log('🗣️ 说话动画完成');
-              return;
-            }
-
-            const step = talkingPattern[currentIndex % talkingPattern.length];
-            window.setMouthTarget(step.value);
-
-            setTimeout(() => {
-              currentIndex++;
-              playNext();
-            }, step.duration);
-          }
-
-          playNext();
-          return true;
-        };
-
-        // 闭嘴功能
-        window.closeMouth = function () {
-          return window.setMouthImmediate(0);
-        };
-
-        // 保留旧的API兼容性
-        window.enableLiveMouth = function () {
-          //console.log('✅ 新的嘴部控制系统已自动启用');
-          //console.log('💡 使用 setMouthTarget(value) 来控制嘴部');
-        };
-
-        //console.log('✅ 基于新编译系统的嘴部控制API创建完成');
-        //console.log('🧪 可用函数:');
-        //console.log('  - setMouthTarget(value) - 设置嘴部目标值(0到1)');
-        //console.log('  - setMouthImmediate(value) - 立即设置嘴部值(0到1)');
-        //console.log('  - getMouthValue() - 获取当前嘴部值');
-        //console.log('  - startTalking(duration) - 开始说话动画');
-        //console.log('  - closeMouth() - 闭嘴');
-      } catch (error) {
-        //console.error('❌ 创建实时参数控制函数时出错:', error);
-      }
+      ModelDiscovery.createRealTimeParameterControl(model);
     }
 
-    // 创建缩放控制函数
+    // 调用ModelDiscovery的方法来创建缩放控制函数
     function createScaleControlFunctions() {
-      try {
-        //console.log('🔧 创建Live2D缩放控制函数...');
-
-        // 缩放模型函数
-        window.scaleModel = function (scaleFactor) {
-          const actualScale = Live2DScaleManager.scaleModel(scaleFactor);
-          //console.log(`📏 模型缩放至: ${actualScale}x`);
-          return actualScale;
-        };
-
-        // 重置模型大小
-        window.resetModelSize = function () {
-          return window.scaleModel(1.0);
-        };
-
-        // 放大模型
-        window.enlargeModel = function (factor = 1.5) {
-          const currentScale = Live2DScaleManager.config.scaleFactor;
-          return window.scaleModel(currentScale * factor);
-        };
-
-        // 缩小模型
-        window.shrinkModel = function (factor = 0.75) {
-          const currentScale = Live2DScaleManager.config.scaleFactor;
-          return window.scaleModel(currentScale * factor);
-        };
-
-        // 设置高分辨率模式
-        window.setHighDPI = function (enabled = true) {
-          Live2DScaleManager.config.enableHighDPI = enabled;
-          const canvas = document.getElementById('live2d');
-          if (canvas) {
-            Live2DScaleManager.setCanvasSize(canvas);
-          }
-          //console.log(`🖥️ 高分辨率模式: ${enabled ? '启用' : '禁用'}`);
-        };
-
-        // 获取缩放信息
-        window.getModelScale = function () {
-          const info = Live2DScaleManager.getScaleInfo();
-          //console.log('📊 当前模型缩放信息:', info);
-          return info;
-        };
-
-        // 预设缩放选项
-        window.setModelSize = function (size) {
-          const presets = {
-            small: 0.8,
-            normal: 1.0,
-            large: 1.5,
-            xlarge: 2.0,
-            xxlarge: 2.5,
-          };
-
-          const scale = presets[size] || parseFloat(size) || 1.0;
-          return window.scaleModel(scale);
-        };
-
-        //console.log('✅ 缩放控制函数创建完成');
-        //console.log('🧪 可用缩放函数:');
-        //console.log('  - scaleModel(factor) - 缩放模型到指定倍数');
-        //console.log('  - resetModelSize() - 重置模型大小');
-        //console.log('  - enlargeModel(factor) - 放大模型');
-        //console.log('  - shrinkModel(factor) - 缩小模型');
-        //console.log('  - setHighDPI(enabled) - 设置高分辨率模式');
-        //console.log('  - getModelScale() - 获取缩放信息');
-        //console.log(
-        //  '  - setModelSize(size) - 使用预设大小 (small/normal/large/xlarge/xxlarge)',
-        //);
-      } catch (error) {
-        console.error('❌ 创建缩放控制函数时出错:', error);
-      }
+      ModelDiscovery.createScaleControlFunctions();
     } // 定期检查模型加载状态
     let checkInterval = setInterval(() => {
       if (checkCurrentAutoLoadStatus()) {
@@ -1354,7 +1417,7 @@ function loadExternalResource(url, type) {
     // 创建全局模型管理函数
     function createGlobalModelManagementFunctions() {
       try {
-        //console.log('🔧 创建全局模型管理函数...');
+        console.log('🔧 创建全局模型管理函数...');
 
         // 列出所有可用模型
         window.listAllModels = function () {
@@ -1363,13 +1426,13 @@ function loadExternalResource(url, type) {
 
         // 发现所有模型
         window.discoverAllModels = async function () {
-          //console.log('🔍 开始发现所有可用模型...');
+          console.log('🔍 开始发现所有可用模型...');
           const discovered = await ModelDiscovery.discoverAllModels();
-          //console.log(
-            //`🎯 发现完成! 总共发现了 ${
-            //  Object.keys(discovered).length
-            //} 个新模型`,
-          //);
+          console.log(
+            `🎯 发现完成! 总共发现了 ${
+              Object.keys(discovered).length
+            } 个新模型`,
+          );
 
           // 显示所有模型
           ModelDiscovery.listAllModels();
@@ -1379,8 +1442,8 @@ function loadExternalResource(url, type) {
         // 切换模型
         window.switchModel = async function (modelId) {
           if (!modelId) {
-            //console.log('💡 用法: switchModel("模型ID")');
-            //console.log('💡 可用模型列表:');
+            console.log('💡 用法: switchModel("模型ID")');
+            console.log('💡 可用模型列表:');
             window.listAllModels();
             return false;
           }
@@ -1413,7 +1476,7 @@ function loadExternalResource(url, type) {
           );
           const randomModelId = availableModels[randomIndex];
 
-          //console.log(`🎲 随机切换到: ${allModels[randomModelId].name}`);
+          console.log(`🎲 随机切换到: ${allModels[randomModelId].name}`);
           return await ModelDiscovery.switchModel(randomModelId);
         };
 
@@ -1450,13 +1513,13 @@ function loadExternalResource(url, type) {
           };
 
           if (!typeMap[type]) {
-            //console.log(
-              //'💡 可用类型: discovered(动态发现), known(预配置), all(全部)',
-            //);
+            console.log(
+              '💡 可用类型: discovered(动态发现), known(预配置), all(全部)',
+            );
             return;
           }
 
-          //console.log(`📋 ${typeMap[type]}模型列表:`);
+          console.log(`📋 ${typeMap[type]}模型列表:`);
           Object.entries(allModels).forEach(([id, config]) => {
             const isDiscovered = config.discovered || false;
             if (
@@ -1465,9 +1528,9 @@ function loadExternalResource(url, type) {
               (type === 'known' && !isDiscovered)
             ) {
               const source = isDiscovered ? '(动态发现)' : '(预配置)';
-              //console.log(
-              //  `  - ${id}: ${config.name} ${source} - ${config.description}`,
-              //);
+              console.log(
+                `  - ${id}: ${config.name} ${source} - ${config.description}`,
+              );
             }
           });
         };
@@ -1502,7 +1565,7 @@ function loadExternalResource(url, type) {
             }
           }
 
-          //console.log('✅ 所有模型测试完成!');
+          console.log('✅ 所有模型测试完成!');
         };
 
         // 模型收藏功能
@@ -1555,18 +1618,18 @@ function loadExternalResource(url, type) {
             );
             return true;
           } else {
-            //console.log(`ℹ️ 模型不在收藏列表中: ${modelId}`);
+            console.log(`ℹ️ 模型不在收藏列表中: ${modelId}`);
             return false;
           }
         };
 
         window.listFavorites = function () {
           if (window.favoriteModels.length === 0) {
-            //console.log('💫 收藏列表为空');
+            console.log('💫 收藏列表为空');
             return;
           }
 
-          //console.log('⭐ 收藏的模型:');
+          console.log('⭐ 收藏的模型:');
           window.favoriteModels.forEach((modelId, index) => {
             const config = ModelDiscovery.getModelConfig(modelId);
             if (config) {
@@ -1585,7 +1648,7 @@ function loadExternalResource(url, type) {
             index < 1 ||
             index > window.favoriteModels.length
           ) {
-            //console.log('💡 用法: switchToFavorite(序号)');
+            console.log('💡 用法: switchToFavorite(序号)');
             window.listFavorites();
             return false;
           }
@@ -1604,19 +1667,22 @@ function loadExternalResource(url, type) {
           console.warn('⚠️ 加载收藏列表失败:', error);
         }
 
-        //console.log('✅ 全局模型管理函数创建完成');
-        //console.log('🧪 可用模型管理函数:');
-        //console.log('  - listAllModels() - 列出所有可用模型');
-        //console.log('  - discoverAllModels() - 发现所有可用模型（懒加载）');
-        //console.log('  - switchModel(modelId) - 切换到指定模型');
-        //console.log('  - switchToRandomModel() - 随机切换模型');
-        //console.log('  - getCurrentModel() - 获取当前模型信息');
-        //console.log('  - listModelsByType(type) - 按类型列出模型');
-        //console.log('  - testAllModels(interval) - 批量测试所有模型');
-        //console.log('  - addToFavorites(modelId) - 添加到收藏');
-        //console.log('  - removeFromFavorites(modelId) - 从收藏中移除');
-        //console.log('  - listFavorites() - 列出收藏的模型');
-        //console.log('  - switchToFavorite(index) - 切换到收藏的模型');
+        // 创建缩放控制函数（确保在页面加载时就可用）
+        ModelDiscovery.createScaleControlFunctions();
+
+        console.log('✅ 全局模型管理函数创建完成');
+        console.log('🧪 可用模型管理函数:');
+        console.log('  - listAllModels() - 列出所有可用模型');
+        console.log('  - discoverAllModels() - 发现所有可用模型（懒加载）');
+        console.log('  - switchModel(modelId) - 切换到指定模型');
+        console.log('  - switchToRandomModel() - 随机切换模型');
+        console.log('  - getCurrentModel() - 获取当前模型信息');
+        console.log('  - listModelsByType(type) - 按类型列出模型');
+        console.log('  - testAllModels(interval) - 批量测试所有模型');
+        console.log('  - addToFavorites(modelId) - 添加到收藏');
+        console.log('  - removeFromFavorites(modelId) - 从收藏中移除');
+        console.log('  - listFavorites() - 列出收藏的模型');
+        console.log('  - switchToFavorite(index) - 切换到收藏的模型');
       } catch (error) {
         console.error('❌ 创建全局模型管理函数时出错:', error);
       }
