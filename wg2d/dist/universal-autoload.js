@@ -10,27 +10,325 @@ const live2d_path =
 const CDN_BASE =
   'https://raw.githubusercontent.com/whisper8878/model2/master/model/';
 
-// 模型配置 - 默认使用 Ariu 模型
-// 要切换模型，只需修改 DEFAULT_MODEL 的值：
-// 'ariu' - 使用 Ariu 模型
-// 'xiaoeemo' - 使用小恶魔模型
-const DEFAULT_MODEL = 'ariu';
-
-// 模型配置映射
-const MODEL_CONFIGS = {
-  ariu: {
-    name: 'Ariu',
-    message: 'Ariu模型加载成功！',
-    paths: [`${CDN_BASE}ariu/ariu.model3.json`],
-    globalVar: 'ariuModel',
+// 缓存避免系统
+const CacheManager = {
+  // 生成时间戳哈希
+  generateTimestampHash() {
+    return Date.now().toString(36);
   },
-  xiaoeemo: {
-    name: '小恶魔',
-    message: '小恶魔模型加载成功！',
-    paths: [`${CDN_BASE}xiaoeemo/xiaoeemo.model3.json`],
-    globalVar: 'xiaoeemoModel',
+  
+  // 生成随机哈希
+  generateRandomHash() {
+    return Math.random().toString(36).substring(2, 15);
+  },
+  
+  // 添加缓存避免参数到URL
+  addCacheBuster(url, useTimestamp = true) {
+    const separator = url.includes('?') ? '&' : '?';
+    const hash = useTimestamp ? this.generateTimestampHash() : this.generateRandomHash();
+    return `${url}${separator}v=${hash}&_=${Date.now()}`;
+  },
+  
+  // 为模型配置添加缓存避免
+  addCacheBusterToModelConfig(config) {
+    if (config.paths && Array.isArray(config.paths)) {
+      config.paths = config.paths.map(path => this.addCacheBuster(path));
+    }
+    return config;
+  }
+};
+
+// 动态模型检测系统
+const ModelDiscovery = {
+  // 已知模型配置 - 可以手动添加新模型
+  knownModels: {
+    ariu: {
+      name: 'Ariu',
+      message: 'Ariu模型加载成功！',
+      paths: [`${CDN_BASE}ariu/ariu.model3.json`],
+      globalVar: 'ariuModel',
+      description: '虚拟主播风格的Live2D模型',
+    },
+    xiaoeemo: {
+      name: '小恶魔',
+      message: '小恶魔模型加载成功！',
+      paths: [`${CDN_BASE}xiaoeemo/xiaoeemo.model3.json`],
+      globalVar: 'xiaoeemoModel',
+      description: '可爱的小恶魔风格模型',
+    },
+  },
+  // 动态发现的模型
+  discoveredModels: {},
+
+  // 当前活动模型
+  currentModel: null,
+
+  // GitHub API 模型探索器 - 实验性功能
+  async exploreGitHubRepo() {
+    try {
+      console.log('🔍 尝试通过GitHub API探索模型库...');
+
+      // 注意：GitHub API 有速率限制，这里只是示例
+      const apiUrl =
+        'https://api.github.com/repos/whisper8878/model2/contents/model';
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'Live2D-Model-Explorer',
+        },
+      });
+
+      if (response.ok) {
+        const contents = await response.json();
+        const modelFolders = contents
+          .filter((item) => item.type === 'dir')
+          .map((item) => item.name);
+
+        console.log(
+          `📁 GitHub API 发现 ${modelFolders.length} 个模型文件夹:`,
+          modelFolders,
+        );
+        return modelFolders;
+      }
+    } catch (error) {
+      console.warn('⚠️ GitHub API 探索失败:', error.message);
+    }
+
+    return [];
+  }, // 动态发现模型的方法
+  async discoverModels() {
+    console.log('🔍 开始动态发现模型...');
+
+    // 尝试通过 GitHub API 获取最新模型列表
+    const githubModels = await this.exploreGitHubRepo();
+
+    // 基于您的实际模型库的模型名称列表
+    const potentialModels = [
+      // 已知存在的模型（基于您提供的模型库截图）
+      'March 7th',
+      'Nicole',
+      'Sparkle',
+      'ailian',
+      'ariu',
+      'bingtang',
+      'chun',
+      'funingna',
+      'fuxuan',
+      'huohuo',
+      'monv',
+      'tingyun',
+      'xiaoeemo',
+      'xiaoxiong',
+
+      // 常见的Live2D模型
+      'haru',
+      'hiyori',
+      'mao',
+      'mark',
+      'natori',
+      'rice',
+      'wanko',
+      'koharu',
+      'hijiki',
+      'tororo',
+      'izumi',
+      'shizuku',
+      'miku',
+
+      // 处理空格和特殊字符的变体
+      'march7th',
+      'march_7th',
+      'march-7th',
+
+      // GitHub API 发现的模型
+      ...githubModels,
+    ];
+
+    // 去重处理
+    const uniqueModels = [...new Set(potentialModels)]; // 使用并发检测提高效率
+    const batchSize = 5; // 每批检测5个模型
+    const modelBatches = [];
+
+    for (let i = 0; i < uniqueModels.length; i += batchSize) {
+      modelBatches.push(uniqueModels.slice(i, i + batchSize));
+    }
+
+    let discoveredCount = 0;
+
+    for (const batch of modelBatches) {
+      const batchPromises = batch.map(async (modelName) => {
+        try {
+          // 尝试多种可能的模型文件名格式
+          const possiblePaths = [
+            `${CDN_BASE}${modelName}/${modelName}.model3.json`,
+            `${CDN_BASE}${modelName.replace(/\s+/g, '')}/${modelName.replace(
+              /\s+/g,
+              '',
+            )}.model3.json`,
+            `${CDN_BASE}${modelName.replace(/\s+/g, '_')}/${modelName.replace(
+              /\s+/g,
+              '_',
+            )}.model3.json`,
+            `${CDN_BASE}${modelName.replace(/\s+/g, '-')}/${modelName.replace(
+              /\s+/g,
+              '-',
+            )}.model3.json`,
+          ];
+
+          for (const modelUrl of possiblePaths) {
+            try {
+              console.log(`🔍 检测模型: ${modelName} - ${modelUrl}`);
+
+              const response = await fetch(modelUrl, {
+                method: 'HEAD',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                },
+              });
+
+              if (response.ok) {
+                console.log(`✅ 发现模型: ${modelName}`);
+                const normalizedName = modelName
+                  .replace(/\s+/g, '')
+                  .toLowerCase();
+                this.discoveredModels[normalizedName] = {
+                  name: this.formatModelName(modelName),
+                  message: `${this.formatModelName(modelName)}模型加载成功！`,
+                  paths: [modelUrl],
+                  globalVar: `${normalizedName}Model`,
+                  description: `动态发现的${this.formatModelName(
+                    modelName,
+                  )}模型`,
+                  discovered: true,
+                  originalName: modelName,
+                };
+                discoveredCount++;
+                break; // 找到一个有效路径就停止
+              }
+            } catch (pathError) {
+              // 继续尝试下一个路径
+            }
+          }
+        } catch (error) {
+          // 静默处理错误，继续检测下一个模型
+        }
+      });
+
+      // 等待当前批次完成
+      await Promise.allSettled(batchPromises);
+
+      // 添加批次间的延迟，避免请求过于频繁
+      if (modelBatches.indexOf(batch) < modelBatches.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
+
+    console.log(`🎯 模型发现完成! 发现了 ${discoveredCount} 个新模型`);
+    return this.discoveredModels;
+  }, // 格式化模型名称
+  formatModelName(modelName) {
+    // 直接返回首字母大写的形式，保持原始名称
+    return modelName.charAt(0).toUpperCase() + modelName.slice(1);
+  },
+
+  // 获取所有可用模型
+  getAllModels() {
+    return { ...this.knownModels, ...this.discoveredModels };
+  },
+
+  // 获取模型配置
+  getModelConfig(modelId) {
+    const allModels = this.getAllModels();
+    return allModels[modelId] || null;
+  },
+
+  // 列出所有模型
+  listAllModels() {
+    const allModels = this.getAllModels();
+    console.log('📋 所有可用模型:');
+    Object.entries(allModels).forEach(([id, config]) => {
+      const source = config.discovered ? '(动态发现)' : '(预配置)';
+      console.log(
+        `  - ${id}: ${config.name} ${source} - ${config.description}`,
+      );
+    });
+    return allModels;
+  },
+
+  // 切换模型
+  async switchModel(modelId) {
+    const modelConfig = this.getModelConfig(modelId);
+    if (!modelConfig) {
+      console.error(`❌ 模型不存在: ${modelId}`);
+      return false;
+    }
+
+    console.log(`🔄 切换到模型: ${modelConfig.name}`);
+    this.currentModel = modelId;
+
+    // 重新初始化模型系统
+    await this.initializeModel(modelConfig);
+    return true;
+  },
+
+  // 初始化模型
+  async initializeModel(modelConfig) {
+    try {
+      // 清除之前的模型
+      if (window.modelManager) {
+        if (window.modelManager.cubism2model) {
+          window.modelManager.cubism2model.destroy();
+        }
+        if (window.modelManager.cubism5model) {
+          window.modelManager.cubism5model.release();
+        }
+      }
+
+      // 清除缓存
+      localStorage.removeItem('modelId');
+      localStorage.removeItem('modelTexturesId');
+      localStorage.removeItem('waifu-display');
+
+      // 构建新的配置
+      const config = {
+        waifuPath: live2d_path + 'waifu-tips.json',
+        cubism5Path:
+          'https://cdn.jsdelivr.net/gh/whisper8878/wg2d2@c26cd8784bda531cd8e41420be786af89bae7592/wg2d/src/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js',
+        modelId: 0,
+        modelTexturesId: 0,
+        drag: false,
+        logLevel: 'info',
+        tools: ['hitokoto', 'photo', 'info', 'quit'],
+        models: [modelConfig],
+      };
+
+      // 重新初始化
+      if (window.initWidget) {
+        window.initWidget(config);
+        console.log(`✅ ${modelConfig.name} 模型切换成功!`);
+        return true;
+      }
+    } catch (error) {
+      console.error(`❌ 模型切换失败:`, error);
+      return false;
+    }
   },
 };
+
+// 默认模型配置 - 现在支持动态切换
+let DEFAULT_MODEL = 'ariu';
+
+// 兼容性：获取当前模型配置
+function getCurrentModelConfig() {
+  return (
+    ModelDiscovery.getModelConfig(DEFAULT_MODEL) ||
+    ModelDiscovery.knownModels.ariu
+  );
+}
+
+// 兼容性：模型配置映射（保持向后兼容）
+const MODEL_CONFIGS = ModelDiscovery.knownModels;
 
 // 智能Live2D缩放系统
 const Live2DScaleManager = {
@@ -281,12 +579,26 @@ function loadExternalResource(url, type) {
       scaleFactor: 2.0, // 默认放大2倍
       enableHighDPI: true,
       autoResize: true,
-    });
-
-    // 初始化 Widget
+    }); // 初始化 Widget
     window.initWidget(config);
 
     console.log('✅ Live2D Widget 初始化完成');
+
+    // 开始动态发现模型
+    console.log('🔍 启动动态模型发现系统...');
+    ModelDiscovery.discoverModels().then((discoveredModels) => {
+      console.log(
+        `🎯 动态发现完成! 发现了 ${
+          Object.keys(discoveredModels).length
+        } 个新模型`,
+      );
+
+      // 创建全局模型管理函数
+      createGlobalModelManagementFunctions();
+
+      // 列出所有可用模型
+      ModelDiscovery.listAllModels();
+    });
 
     // 延迟检查实际加载的配置
     setTimeout(() => {
@@ -361,7 +673,8 @@ function loadExternalResource(url, type) {
               const key = model._expressions._keyValues[i].first;
               console.log(`  ${i}: ${key}`);
             }
-          };          window.testExpressionByIndex = function (index) {
+          };
+          window.testExpressionByIndex = function (index) {
             if (model._expressions && index < model._expressions.getSize()) {
               const key = model._expressions._keyValues[index].first;
               console.log(`🎭 测试表情: ${key}`);
@@ -408,7 +721,7 @@ function loadExternalResource(url, type) {
               const expression = model._expressions.getValue(foundKey);
               if (expression && model._expressionManager) {
                 model._expressionManager.stopAllMotions();
-                
+
                 // 使用 setTimeout 确保之前的动作已停止
                 setTimeout(() => {
                   const handle = model._expressionManager.startMotionPriority(
@@ -419,16 +732,17 @@ function loadExternalResource(url, type) {
 
                   if (handle !== -1) {
                     console.log(`🎭 播放表情: ${expressionName} (${foundKey})`);
-                    
+
                     // 维持表情状态的循环，对于说话等连续动作至关重要
                     const maintainExpression = () => {
                       if (model._expressionManager.isFinished()) {
                         // 如果表情播放完成，重新开始以维持状态
-                        const newHandle = model._expressionManager.startMotionPriority(
-                          expression,
-                          false,
-                          10,
-                        );
+                        const newHandle =
+                          model._expressionManager.startMotionPriority(
+                            expression,
+                            false,
+                            10,
+                          );
                         if (newHandle !== -1) {
                           setTimeout(maintainExpression, 100);
                         }
@@ -552,7 +866,7 @@ function loadExternalResource(url, type) {
             Live2DScaleManager.setCanvasSize(canvas);
             console.log('🎯 应用初始缩放设置 (2.0x)');
           }
-        }, 500);        //console.log('✅ 通用测试函数创建完成');
+        }, 500); //console.log('✅ 通用测试函数创建完成');
         //console.log('🧪 可用函数:');
         //console.log('  - listExpressions() - 列出所有表情');
         //console.log('  - testExpressionByIndex(index) - 测试指定索引的表情');
@@ -774,21 +1088,272 @@ function loadExternalResource(url, type) {
       } catch (error) {
         console.error('❌ 创建缩放控制函数时出错:', error);
       }
-    }
-
-    // 定期检查模型加载状态
+    } // 定期检查模型加载状态
     let checkInterval = setInterval(() => {
       if (checkCurrentAutoLoadStatus()) {
         clearInterval(checkInterval);
         //console.log(`🎉 ${currentModelConfig.name}模型加载检查完成！`);
       }
-    }, 1000);
-
-    // 超时停止检查
+    }, 1000); // 超时停止检查
     setTimeout(() => {
       clearInterval(checkInterval);
       //console.log('⏰ 模型加载检查超时');
     }, 15000);
+
+    // 创建全局模型管理函数
+    function createGlobalModelManagementFunctions() {
+      try {
+        console.log('🔧 创建全局模型管理函数...');
+
+        // 列出所有可用模型
+        window.listAllModels = function () {
+          return ModelDiscovery.listAllModels();
+        };
+
+        // 切换模型
+        window.switchModel = async function (modelId) {
+          if (!modelId) {
+            console.log('💡 用法: switchModel("模型ID")');
+            console.log('💡 可用模型列表:');
+            window.listAllModels();
+            return false;
+          }
+
+          return await ModelDiscovery.switchModel(modelId);
+        };
+
+        // 切换到随机模型
+        window.switchToRandomModel = async function () {
+          const allModels = ModelDiscovery.getAllModels();
+          const modelIds = Object.keys(allModels);
+
+          if (modelIds.length === 0) {
+            console.log('❌ 没有可用的模型');
+            return false;
+          }
+
+          // 排除当前模型
+          const availableModels = modelIds.filter(
+            (id) => id !== ModelDiscovery.currentModel,
+          );
+
+          if (availableModels.length === 0) {
+            console.log('❌ 没有其他可切换的模型');
+            return false;
+          }
+
+          const randomIndex = Math.floor(
+            Math.random() * availableModels.length,
+          );
+          const randomModelId = availableModels[randomIndex];
+
+          console.log(`🎲 随机切换到: ${allModels[randomModelId].name}`);
+          return await ModelDiscovery.switchModel(randomModelId);
+        };
+
+        // 获取当前模型信息
+        window.getCurrentModel = function () {
+          if (!ModelDiscovery.currentModel) {
+            console.log('❌ 当前没有活动模型');
+            return null;
+          }
+
+          const config = ModelDiscovery.getModelConfig(
+            ModelDiscovery.currentModel,
+          );
+          console.log('📊 当前模型信息:', {
+            id: ModelDiscovery.currentModel,
+            name: config.name,
+            description: config.description,
+            source: config.discovered ? '动态发现' : '预配置',
+          });
+
+          return {
+            id: ModelDiscovery.currentModel,
+            config: config,
+          };
+        };
+
+        // 按类型筛选模型
+        window.listModelsByType = function (type) {
+          const allModels = ModelDiscovery.getAllModels();
+          const typeMap = {
+            discovered: '动态发现',
+            known: '预配置',
+            all: '全部',
+          };
+
+          if (!typeMap[type]) {
+            console.log(
+              '💡 可用类型: discovered(动态发现), known(预配置), all(全部)',
+            );
+            return;
+          }
+
+          console.log(`📋 ${typeMap[type]}模型列表:`);
+          Object.entries(allModels).forEach(([id, config]) => {
+            const isDiscovered = config.discovered || false;
+            if (
+              type === 'all' ||
+              (type === 'discovered' && isDiscovered) ||
+              (type === 'known' && !isDiscovered)
+            ) {
+              const source = isDiscovered ? '(动态发现)' : '(预配置)';
+              console.log(
+                `  - ${id}: ${config.name} ${source} - ${config.description}`,
+              );
+            }
+          });
+        };
+
+        // 批量切换模型测试
+        window.testAllModels = async function (interval = 5000) {
+          const allModels = ModelDiscovery.getAllModels();
+          const modelIds = Object.keys(allModels);
+
+          if (modelIds.length === 0) {
+            console.log('❌ 没有可用的模型');
+            return;
+          }
+
+          console.log(
+            `🧪 开始测试所有模型 (每${interval / 1000}秒切换一次)...`,
+          );
+
+          for (let i = 0; i < modelIds.length; i++) {
+            const modelId = modelIds[i];
+            const config = allModels[modelId];
+
+            console.log(
+              `🔄 [${i + 1}/${modelIds.length}] 测试模型: ${config.name}`,
+            );
+
+            await ModelDiscovery.switchModel(modelId);
+
+            // 等待指定时间后切换到下一个模型
+            if (i < modelIds.length - 1) {
+              await new Promise((resolve) => setTimeout(resolve, interval));
+            }
+          }
+
+          console.log('✅ 所有模型测试完成!');
+        };
+
+        // 模型收藏功能
+        if (!window.favoriteModels) {
+          window.favoriteModels = [];
+        }
+
+        window.addToFavorites = function (modelId) {
+          if (!ModelDiscovery.getModelConfig(modelId)) {
+            console.log(`❌ 模型不存在: ${modelId}`);
+            return false;
+          }
+
+          if (!window.favoriteModels.includes(modelId)) {
+            window.favoriteModels.push(modelId);
+            console.log(
+              `⭐ 已添加到收藏: ${ModelDiscovery.getModelConfig(modelId).name}`,
+            );
+
+            // 保存到localStorage
+            localStorage.setItem(
+              'favoriteModels',
+              JSON.stringify(window.favoriteModels),
+            );
+            return true;
+          } else {
+            console.log(
+              `ℹ️ 模型已在收藏列表中: ${
+                ModelDiscovery.getModelConfig(modelId).name
+              }`,
+            );
+            return false;
+          }
+        };
+
+        window.removeFromFavorites = function (modelId) {
+          const index = window.favoriteModels.indexOf(modelId);
+          if (index > -1) {
+            window.favoriteModels.splice(index, 1);
+            console.log(
+              `🗑️ 已从收藏中移除: ${
+                ModelDiscovery.getModelConfig(modelId).name
+              }`,
+            );
+
+            // 保存到localStorage
+            localStorage.setItem(
+              'favoriteModels',
+              JSON.stringify(window.favoriteModels),
+            );
+            return true;
+          } else {
+            console.log(`ℹ️ 模型不在收藏列表中: ${modelId}`);
+            return false;
+          }
+        };
+
+        window.listFavorites = function () {
+          if (window.favoriteModels.length === 0) {
+            console.log('💫 收藏列表为空');
+            return;
+          }
+
+          console.log('⭐ 收藏的模型:');
+          window.favoriteModels.forEach((modelId, index) => {
+            const config = ModelDiscovery.getModelConfig(modelId);
+            if (config) {
+              console.log(
+                `  ${index + 1}. ${modelId}: ${config.name} - ${
+                  config.description
+                }`,
+              );
+            }
+          });
+        };
+
+        window.switchToFavorite = async function (index) {
+          if (
+            typeof index !== 'number' ||
+            index < 1 ||
+            index > window.favoriteModels.length
+          ) {
+            console.log('💡 用法: switchToFavorite(序号)');
+            window.listFavorites();
+            return false;
+          }
+
+          const modelId = window.favoriteModels[index - 1];
+          return await ModelDiscovery.switchModel(modelId);
+        };
+
+        // 从localStorage加载收藏列表
+        try {
+          const savedFavorites = localStorage.getItem('favoriteModels');
+          if (savedFavorites) {
+            window.favoriteModels = JSON.parse(savedFavorites);
+          }
+        } catch (error) {
+          console.warn('⚠️ 加载收藏列表失败:', error);
+        }
+
+        console.log('✅ 全局模型管理函数创建完成');
+        console.log('🧪 可用模型管理函数:');
+        console.log('  - listAllModels() - 列出所有可用模型');
+        console.log('  - switchModel(modelId) - 切换到指定模型');
+        console.log('  - switchToRandomModel() - 随机切换模型');
+        console.log('  - getCurrentModel() - 获取当前模型信息');
+        console.log('  - listModelsByType(type) - 按类型列出模型');
+        console.log('  - testAllModels(interval) - 批量测试所有模型');
+        console.log('  - addToFavorites(modelId) - 添加到收藏');
+        console.log('  - removeFromFavorites(modelId) - 从收藏中移除');
+        console.log('  - listFavorites() - 列出收藏的模型');
+        console.log('  - switchToFavorite(index) - 切换到收藏的模型');
+      } catch (error) {
+        console.error('❌ 创建全局模型管理函数时出错:', error);
+      }
+    }
   } catch (error) {
     console.error('❌ 加载过程中出错:', error);
   }
